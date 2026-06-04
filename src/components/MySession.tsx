@@ -26,7 +26,8 @@ import {
   BookOpen,
   MessageSquare,
   AlertCircle,
-  ScrollText
+  ScrollText,
+  ChevronLeft
 } from 'lucide-react';
 
 interface MySessionProps {
@@ -54,15 +55,46 @@ export default function MySession({
   setShowExamResults,
   t
 }: MySessionProps) {
-  const session = sessions.find(s => s.id === user.sessionId) || sessions[0];
+  // Filter sessions for current user (past and present)
+  const userSessions = sessions.filter(s => {
+    if (user.role === 'ADMIN') return true;
+    if (user.role === 'TEACHER') {
+      return s.teacher.name.includes(user.firstName) || s.teacher.name.includes(user.lastName);
+    }
+    // Student: match name or email, or s.id === user.sessionId
+    return s.id === user.sessionId || s.students.some(stud => 
+      stud.name === `${user.firstName} ${user.lastName}` || 
+      stud.email?.toLowerCase() === user.email.toLowerCase()
+    );
+  });
+
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (showExamResults && user.sessionId) {
+      setSelectedSessionId(user.sessionId);
+    }
+  }, [showExamResults, user.sessionId]);
+
+  const session = sessions.find(s => s.id === selectedSessionId) || sessions.find(s => s.id === user.sessionId) || sessions[0];
   const isTeacher = user.role === 'TEACHER' || user.role === 'ADMIN';
   const announcements = session.announcements || [];
 
   // Local UI States
   const [activeInfoStudent, setActiveInfoStudent] = useState<SessionStudent | null>(null);
   const [giftModalStudentId, setGiftModalStudentId] = useState<string | null>(null);
-  const [editField, setEditField] = useState<{ field: 'name' | 'location'; value: string } | null>(null);
+  const [editField, setEditField] = useState<{ field: 'name' | 'location' | 'themeColor' | 'themePhoto'; value: string } | null>(null);
+  const [tempColor, setTempColor] = useState('#7C3AED');
+  const [tempPhoto, setTempPhoto] = useState('');
   const [newAnnouncementModal, setNewAnnouncementModal] = useState(false);
+
+  // Sync edits when active session changes or when editField opens
+  useEffect(() => {
+    if (editField && editField.field === 'themeColor') {
+      setTempColor(session.themeColor || '#7C3AED');
+      setTempPhoto(session.themePhoto || '');
+    }
+  }, [editField, session]);
 
   // States for making new announcement
   const [annText, setAnnText] = useState('');
@@ -135,6 +167,13 @@ export default function MySession({
 
     setSessions(prev => prev.map(s => {
       if (s.id === session.id) {
+        if (editField.field === 'themeColor') {
+          return {
+            ...s,
+            themeColor: tempColor,
+            themePhoto: tempPhoto
+          };
+        }
         return {
           ...s,
           [editField.field]: editField.value
@@ -378,25 +417,152 @@ export default function MySession({
     }
   };
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-      {/* Teacher Session details header */}
-      <div className="bg-white rounded-3xl border border-brand-primary/10 shadow-sm overflow-hidden mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-12">
-          {/* Teacher Badge Cover */}
-          <div className="md:col-span-3 bg-brand-primary p-8 flex flex-col items-center justify-center text-center text-white select-none">
-            <div className="bg-white p-1.5 rounded-full mb-3 shadow-md">
-              <img 
-                src="https://picsum.photos/seed/coach/200/200" 
-                alt="" 
-                className="w-24 h-24 rounded-full border border-gray-100" 
-                referrerPolicy="no-referrer"
-              />
+  if (selectedSessionId === null) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 animate-fade-in select-none">
+        {/* Header */}
+        <div className="text-center mb-12 select-none">
+          <h1 className="text-3xl sm:text-5xl font-black text-brand-dark mb-4">
+            {lang === 'ar' ? 'سجل حلقاتي القرآني' : 'My Quranic Sessions'}
+          </h1>
+          <p className="text-sm sm:text-base text-gray-500 font-bold max-w-xl mx-auto">
+            {lang === 'ar' 
+              ? 'تتبعي حِلق التلاوة المقيدة بها حالياً وتاريخ مشاركاتكِ المشرّفة للفصول السابقة.' 
+              : 'Browse your active and past physical or digital Quran recitation circles.'}
+          </p>
+        </div>
+
+        {/* Sessions Card Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {userSessions.map(s => (
+            <div 
+              key={s.id}
+              onClick={() => setSelectedSessionId(s.id)}
+              className="relative bg-white rounded-3xl border border-gray-150 shadow-sm overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer group text-start flex flex-col justify-between min-h-[300px]"
+              style={{ borderColor: s.themeColor ? `${s.themeColor}35` : undefined }}
+            >
+              {/* Left/Start accent strip of chosen color */}
+              <div className="absolute top-0 bottom-0 start-0 w-2.5 z-20" style={{ backgroundColor: s.themeColor || '#7C3AED' }}></div>
+              
+              {/* Theme Photo Banner */}
+              {s.themePhoto ? (
+                <div className="h-28 w-full relative overflow-hidden bg-cover bg-center shrink-0" style={{ backgroundImage: `url(${s.themePhoto})` }}>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/20" />
+                  <div className="absolute inset-0 opacity-20" style={{ backgroundColor: s.themeColor || '#7C3AED' }} />
+                </div>
+              ) : (
+                <div className="h-6 w-full shrink-0" style={{ backgroundColor: s.themeColor ? `${s.themeColor}10` : '#7C3AED10' }} />
+              )}
+
+              <div className="p-5 ps-8 flex-grow">
+                <div className="flex justify-between items-start mb-4">
+                  <span 
+                    className="text-[0.65rem] font-black uppercase tracking-wider px-2.5 py-1 rounded-full" 
+                    style={{ 
+                      backgroundColor: s.themeColor ? `${s.themeColor}15` : '#7C3AED15', 
+                      color: s.themeColor || '#7C3AED' 
+                    }}
+                  >
+                    {s.isPast ? (lang === 'ar' ? 'حلقة سابقة' : 'Past Completed') : (lang === 'ar' ? 'حلقة نشطة' : 'Active Current')}
+                  </span>
+                  <span className="text-xs font-black px-2.5 py-1 bg-gray-100 rounded-full text-gray-500">
+                    {lang === 'ar' ? t()[s.level.toLowerCase()] || s.level : s.level}
+                  </span>
+                </div>
+                
+                <h3 className="text-xl font-black text-brand-dark mb-2.5 group-hover:text-brand-primary transition-colors">
+                  {s.name}
+                </h3>
+                
+                <p className="text-sm font-bold text-gray-500 mb-6 flex items-center gap-1.5">
+                  <span className="text-xs text-gray-400">{lang === 'ar' ? 'المعقّدة الأستاذة:' : 'Teacher:'}</span>
+                  <span className="text-brand-dark font-black">{s.teacher.name}</span>
+                </p>
+
+                <div className="space-y-2.5 pt-1 text-xs font-bold text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                    <span>{s.time}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-gray-400" />
+                    <span>{s.location}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50/50 border-t border-gray-100 p-4 ps-8 flex items-center justify-between text-xs font-black">
+                <div className="flex items-center gap-1.5 font-bold" style={{ color: s.themeColor || '#7C3AED' }}>
+                  <Users className="w-4 h-4 text-gray-400" />
+                  <span>{s.students.length} {lang === 'ar' ? 'طالبات مقيدات' : 'Students'}</span>
+                </div>
+                <span className="font-extrabold flex items-center gap-1 text-brand-primary group-hover:translate-x-1 transition-transform rtl:group-hover:-translate-x-1" style={{ color: s.themeColor || '#7C3AED' }}>
+                  {lang === 'ar' ? 'دخول الحلقة ➔' : 'View Session ➔'}
+                </span>
+              </div>
             </div>
-            <h4 className="text-xl font-black mb-1">{session.teacher.name}</h4>
-            <span className="bg-white text-brand-primary text-xs font-black py-1 px-3 rounded-full border shadow-xs">
-              {t().coach}
-            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const themeColor = session.themeColor || '#7C3AED';
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 active-session-container">
+      {/* Dynamic Theme color style overrides */}
+      <style>{`
+        .active-session-container .bg-brand-primary { background-color: ${themeColor} !important; }
+        .active-session-container .text-brand-primary { color: ${themeColor} !important; }
+        .active-session-container .border-brand-primary { border-color: ${themeColor} !important; }
+        .active-session-container .border-brand-primary\\/10 { border-color: ${themeColor}1a !important; }
+        .active-session-container .border-brand-primary\\/15 { border-color: ${themeColor}26 !important; }
+        .active-session-container .border-brand-primary\\/25 { border-color: ${themeColor}40 !important; }
+        .active-session-container .bg-brand-neutral { background-color: ${themeColor}0e !important; }
+        .active-session-container .bg-brand-neutral\\/10 { background-color: ${themeColor}1a !important; }
+        .active-session-container .bg-brand-neutral\\/20 { background-color: ${themeColor}33 !important; }
+        .active-session-container .text-brand-accent { color: ${themeColor} !important; }
+        .active-session-container .hover\\:bg-brand-accent:hover { background-color: ${themeColor}dd !important; }
+        .active-session-container .hover\\:border-brand-primary\\/30:hover { border-color: ${themeColor}4d !important; }
+        .active-session-container .focus\\:border-brand-primary:focus { border-color: ${themeColor} !important; }
+        .active-session-container .shadow-brand-primary\\/10 { box-shadow: 0 4px 6px -1px ${themeColor}1a, 0 2px 4px -2px ${themeColor}1a !important; }
+      `}</style>
+
+      {/* Back button to go back to all user sessions */}
+      <div className="mb-6 flex justify-start select-none">
+        <button
+          onClick={() => {
+            setSelectedSessionId(null);
+            setShowExamResults(false);
+          }}
+          className="px-4 py-2 bg-white border border-brand-primary/10 hover:border-brand-primary/20 text-brand-primary hover:text-brand-accent rounded-2xl text-xs sm:text-sm font-black flex items-center gap-1.5 shadow-xs transition-all cursor-pointer group"
+        >
+          <ChevronLeft className="w-4.5 h-4.5 transition-transform group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5" />
+          <span>{lang === 'ar' ? 'العودة لجميع الحلقات' : 'Back to All Sessions'}</span>
+        </button>
+      </div>
+
+      {/* Teacher Session details header */}
+      <div className="bg-white rounded-3xl border border-brand-primary/10 shadow-sm overflow-hidden mb-8" style={{ borderColor: session.themeColor ? `${session.themeColor}30` : undefined }}>
+        <div className="grid grid-cols-1 md:grid-cols-12">
+          {/* Theme Photo / Card Cover */}
+          <div className="md:col-span-3 min-h-[220px] relative flex flex-col items-center justify-center p-6 text-center text-white select-none overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: session.themePhoto ? `url(${session.themePhoto})` : undefined, backgroundColor: session.themeColor || '#8B5CF6' }}>
+            {/* Color Overlay to ensure readability and contrast */}
+            <div className="absolute inset-0 bg-brand-dark/50" />
+            <div className="absolute inset-0 mix-blend-overlay opacity-40" style={{ backgroundColor: session.themeColor || '#8B5CF6' }} />
+            
+            {/* Elegant Minimal Ornate Badge Frame instead of profile picture */}
+            <div className="relative z-10 w-16 h-16 rounded-full border-2 border-white/40 flex items-center justify-center bg-white/10 backdrop-blur-md mb-3 shadow-sm">
+              <BookOpen className="w-8 h-8 text-white" />
+            </div>
+            
+            <div className="relative z-10 px-4">
+              <h4 className="text-lg sm:text-xl font-black mb-1.5 tracking-tight leading-tight">{session.teacher.name}</h4>
+              <span className="text-[0.65rem] font-black tracking-widest uppercase bg-white/20 text-white py-1 px-3.5 rounded-full border border-white/20 backdrop-blur-md">
+                {t().coach}
+              </span>
+            </div>
           </div>
 
           {/* Details */}
@@ -406,14 +572,25 @@ export default function MySession({
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest block mb-1">
                   {t().sessionName}
                 </label>
-                <div className="text-xl font-bold text-brand-dark flex items-center gap-2">
+                <div className="text-xl font-bold text-brand-dark flex flex-wrap items-center gap-2">
                   <span>{session.name}</span>
-                  {isTeacher && (
-                    <Pencil 
-                      className="w-4 h-4 text-gray-400 hover:text-brand-primary cursor-pointer transition-colors" 
-                      onClick={() => setEditField({ field: 'name', value: session.name })}
-                    />
-                  )}
+                  <div className="flex gap-1.5 items-center">
+                    {isTeacher && (
+                      <>
+                        <Pencil 
+                          className="w-4 h-4 text-gray-400 hover:text-brand-primary cursor-pointer transition-colors" 
+                          onClick={() => setEditField({ field: 'name', value: session.name })}
+                        />
+                        <button 
+                          onClick={() => setEditField({ field: 'themeColor', value: session.themeColor || '#7C3AED' })}
+                          className="p-1 px-2.5 rounded-full text-[0.65rem] font-black border bg-slate-50 text-gray-500 hover:bg-white hover:text-brand-primary hover:border-brand-primary/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-3xs"
+                        >
+                          <span className="w-2.5 h-2.5 rounded-full inline-block shrink-0 shadow-3xs border border-white" style={{ backgroundColor: session.themeColor || '#7C3AED' }}></span>
+                          <span>{lang === 'ar' ? 'تعديل لون المظهر' : 'Edit Theme'}</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -944,19 +1121,136 @@ export default function MySession({
       {/* Inline Section Field Editor modal */}
       {editField && (
         <div className="fixed inset-0 bg-brand-dark/50 backdrop-blur-md z-[200] flex items-center justify-center p-4">
-          <div className="bg-white p-6 rounded-3xl border border-brand-primary/15 shadow-2xl w-full max-w-md text-start">
-            <h4 className="text-lg font-black mb-4">
-              {editField.field === 'name' ? t().sessionName : t().sessionLocation}
+          <div className="bg-white p-6 rounded-3xl border border-brand-primary/15 shadow-2xl w-full max-w-md text-start animate-fade-in">
+            <h4 className="text-lg font-black mb-4 text-brand-dark">
+              {editField.field === 'name' 
+                ? t().sessionName 
+                : editField.field === 'location' 
+                  ? t().sessionLocation 
+                  : (lang === 'ar' ? 'تصميم مظهر ولون حلقة التلاوة' : 'Recitation Session Theme Settings')}
             </h4>
             <form onSubmit={handleEditSessionField}>
-              <div className="mb-4">
-                <input 
-                  type="text" 
-                  value={editField.value}
-                  onChange={(e) => setEditField({ ...editField, value: e.target.value })}
-                  className="w-full bg-slate-50 border border-gray-200 focus:border-brand-primary focus:outline-none rounded-2xl px-4 py-3 text-sm font-bold"
-                  required 
-                />
+              <div className="mb-6">
+                {editField.field === 'themeColor' ? (
+                  <div className="space-y-4">
+                    {/* Header accent info */}
+                    <div className="p-3 bg-slate-50 border border-gray-100 rounded-2xl flex items-center gap-2.5">
+                      <div className="w-4 h-4 rounded-full" style={{ backgroundColor: tempColor }}></div>
+                      <span className="text-xs font-black text-gray-700">
+                        {lang === 'ar' ? 'معاينة المظهر النشط' : 'Theme Customization Preview'}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-gray-500 font-bold mb-1">
+                      {lang === 'ar' 
+                        ? '١. اختر لون مظهر مخصص لبطاقة حلقة التلاوة:' 
+                        : '1. Select a customized style color accent for this recitation session:'}
+                    </p>
+                    <div className="grid grid-cols-4 gap-2.5">
+                      {[
+                        { color: '#7C3AED', name: lang === 'ar' ? 'بنفسجي' : 'Purple' },
+                        { color: '#059669', name: lang === 'ar' ? 'أخضر' : 'Green' },
+                        { color: '#D97706', name: lang === 'ar' ? 'عسلي' : 'Amber' },
+                        { color: '#2563EB', name: lang === 'ar' ? 'أزرق' : 'Blue' },
+                        { color: '#DB2777', name: lang === 'ar' ? 'وردي' : 'Pink' },
+                        { color: '#DC2626', name: lang === 'ar' ? 'أحمر' : 'Red' },
+                        { color: '#0891B2', name: lang === 'ar' ? 'سيان' : 'Cyan' },
+                        { color: '#4B5563', name: lang === 'ar' ? 'رمادي' : 'Slate' }
+                      ].map(item => (
+                        <button
+                          key={item.color}
+                          type="button"
+                          onClick={() => setTempColor(item.color)}
+                          className={`flex flex-col items-center gap-1 p-1.5 rounded-xl border-2 transition-all cursor-pointer ${
+                            tempColor === item.color 
+                              ? 'border-brand-primary bg-brand-primary/5' 
+                              : 'border-transparent bg-gray-50 hover:bg-gray-100'
+                          }`}
+                        >
+                          <span className="w-6 h-6 rounded-full inline-block shadow-3xs" style={{ backgroundColor: item.color }}></span>
+                          <span className="text-[0.6rem] font-bold text-gray-500">{item.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {/* Color picker */}
+                    <div className="flex items-center gap-3 bg-gray-50/50 p-2 border border-gray-150 rounded-2xl">
+                      <input 
+                        type="color" 
+                        value={tempColor}
+                        onChange={(e) => setTempColor(e.target.value)}
+                        className="w-10 h-10 border-0 rounded cursor-pointer bg-transparent"
+                      />
+                      <span className="text-xs font-bold text-gray-500">
+                        {lang === 'ar' ? 'أو اختر لون دقيق مخصص:' : 'Or pick an exact custom color:'}
+                        <span className="font-mono text-[0.65rem] text-brand-primary font-black block">{tempColor}</span>
+                      </span>
+                    </div>
+
+                    {/* Photo theme component */}
+                    <hr className="my-3 border-gray-150" />
+                    <p className="text-xs text-gray-500 font-bold mb-1">
+                      {lang === 'ar' 
+                        ? '٢. اختر صورة غلاف مظهر حلقة التلاوة:' 
+                        : '2. Select a Cover Theme Photo Background:'}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { 
+                          url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600', 
+                          name: lang === 'ar' ? 'زخرفة إسلامية' : 'Mosque Geometry' 
+                        },
+                        { 
+                          url: 'https://images.unsplash.com/photo-1564121211835-e88c852648ab?auto=format&fit=crop&q=80&w=600', 
+                          name: lang === 'ar' ? 'قنديل روحي' : 'Lantern Arch' 
+                        },
+                        { 
+                          url: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&q=80&w=600', 
+                          name: lang === 'ar' ? 'نقش ماندالا' : 'Elegant Pattern' 
+                        },
+                        { 
+                          url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=600', 
+                          name: lang === 'ar' ? 'أفق الغروب' : 'Dusk Sky' 
+                        }
+                      ].map(item => (
+                        <button
+                          key={item.url}
+                          type="button"
+                          onClick={() => setTempPhoto(item.url)}
+                          className={`flex items-center gap-2 p-1.5 rounded-xl border-2 transition-all text-start cursor-pointer hover:bg-gray-50 text-xs font-bold ${
+                            tempPhoto === item.url 
+                              ? 'border-brand-primary bg-brand-primary/5 shadow-2xs' 
+                              : 'border-gray-150'
+                          }`}
+                        >
+                          <img src={item.url} alt="" className="w-8 h-8 object-cover rounded-md flex-shrink-0" referrerPolicy="no-referrer" />
+                          <span className="text-[0.65rem] truncate text-gray-700 block leading-tight">{item.name}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Custom image URL input */}
+                    <div className="mt-2.5">
+                      <label className="text-[0.7rem] font-bold text-gray-400 block mb-1">
+                        {lang === 'ar' ? 'أو أدخل رابط صورة خارجي مخصص (URL):' : 'Or type a custom external image URL:'}
+                      </label>
+                      <input 
+                        type="url" 
+                        value={tempPhoto}
+                        onChange={(e) => setTempPhoto(e.target.value)}
+                        placeholder="https://example.com/image.jpg"
+                        className="w-full bg-slate-50 border border-gray-200 focus:border-brand-primary focus:outline-none rounded-2xl px-4 py-2.5 text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <input 
+                    type="text" 
+                    value={editField.value}
+                    onChange={(e) => setEditField({ ...editField, value: e.target.value })}
+                    className="w-full bg-slate-50 border border-gray-200 focus:border-brand-primary focus:outline-none rounded-2xl px-4 py-3 text-sm font-bold"
+                    required 
+                  />
+                )}
               </div>
               <div className="flex gap-2">
                 <button 

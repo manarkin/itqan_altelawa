@@ -29,6 +29,8 @@ export const initialSessions: Session[] = [
   { 
     id: '1', 
     name: 'حلقة صفوة الإتقان', 
+    themeColor: '#7C3AED', // Royal Purple
+    themePhoto: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600',
     teacher: {
       name: 'أ. مريم الهنائية', 
       phone: '+968 9111 2233'
@@ -74,6 +76,8 @@ export const initialSessions: Session[] = [
   { 
     id: '2', 
     name: 'أساسيات الترتيل القرآني', 
+    themeColor: '#059669', // Emerald Green
+    themePhoto: 'https://images.unsplash.com/photo-1564121211835-e88c852648ab?auto=format&fit=crop&q=80&w=600',
     teacher: {
       name: 'أ. عائشة الشكيلية', 
       phone: '+968 9222 3344'
@@ -93,6 +97,34 @@ export const initialSessions: Session[] = [
         type: 'text',
         date: '2026-06-04',
         author: 'عائشة الشكيلية'
+      }
+    ]
+  },
+  { 
+    id: '3', 
+    name: 'حلقة مخارج الحروف وصفاتها (مكتملة - خريف ٢٠٢٥)', 
+    themeColor: '#D97706', // Warm Amber/Ochre
+    themePhoto: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=600',
+    isPast: true,
+    teacher: {
+      name: 'أ. وفاء الندابية', 
+      phone: '+968 9444 5566'
+    },
+    location: 'عبر الأثير - تيمز',
+    time: 'السبت | 09:00 - 11:00', 
+    maxStudents: 20, 
+    level: 'BEGINNER',
+    students: [
+      { id: 's4', name: 'عائشة الهنائية', money: 450, avatar: 'https://picsum.photos/seed/s4/100/100', absencesExcused: 1, absencesUnexcused: 0, email: 'aisha@student.squ.edu.om', phone: '+968 7766 5544', college: 'التربية', cohort: '2022' },
+      { id: 's1', name: 'أمل الفارسية', money: 2850, avatar: 'https://picsum.photos/seed/s1/100/100', absencesExcused: 1, absencesUnexcused: 0, email: 'amel@student.squ.edu.om', phone: '+968 9776 5544', college: 'التربية', cohort: '2022' }
+    ],
+    announcements: [
+      { 
+        id: 'sa5', 
+        text: 'أتممنا بفضل الله وكرمه منهاج مخارج الحروف، طوبى لمن اجتهدت وثابرت.', 
+        type: 'text',
+        date: '2025-12-15',
+        author: 'وفاء الندابية'
       }
     ]
   }

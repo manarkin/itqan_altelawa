@@ -81,6 +81,9 @@ export interface Session {
   maxStudents: number;
   level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'TAMKEEN';
   announcements: Announcement[];
+  themeColor?: string;
+  themePhoto?: string;
+  isPast?: boolean;
 }
 
 export interface LeaderboardEntry {
