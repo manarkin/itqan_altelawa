@@ -307,7 +307,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans text-brand-dark overflow-x-hidden pb-10">
+    <div className="min-h-screen flex flex-col font-sans text-brand-dark overflow-x-hidden">
       {/* Dynamic Navigation Head */}
       <Navbar 
         user={user}
