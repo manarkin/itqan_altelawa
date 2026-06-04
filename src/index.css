@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #8B5CF6; /* Vibrant Violet */
+  --color-brand-secondary: #C084FC;
+  --color-brand-neutral: #F5F3FF;
+  --color-brand-warm: #FBBF24; /* Sunny Gold */
+  --color-brand-dark: #2D1B69;
+  --color-brand-accent: #7C3AED;
+
+  --font-sans: "Tajawal", "Inter", sans-serif;
+  --font-serif: "Amiri", serif;
+}
+
+/* Custom layout enhancements */
+body {
+  background-color: #F5F3FF; /* brand-neutral */
+  background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M40 0l5.8 14.2 14.2 5.8-14.2 5.8L40 40l-5.8-14.2L20 20l14.2-5.8L40 0zm0 40l5.8 14.2 14.2 5.8-14.2 5.8L40 80l-5.8-14.2L20 60l14.2-5.8L40 40zm40-40l5.8 14.2 14.2 5.8-14.2 5.8L80 40l-5.8-14.2L60 20l14.2-5.8L80 0zm0 40l5.8 14.2 14.2 5.8-14.2 5.8L80 80l-5.8-14.2L60 60l14.2-5.8L80 40zM0 0l5.8 14.2 14.2 5.8-14.2 5.8L0 40l-5.8-14.2L-20 20l14.2-5.8L0 0zm0 40l5.8 14.2 14.2 5.8-14.2 5.8L0 80l-5.8-14.2L-20 60l14.2-5.8L0 40z' fill='%238B5CF6' fill-opacity='0.02' fill-rule='evenodd'/%3E%3C/svg%3E");
+}
+
+.text-ltr {
+  direction: ltr !important;
+}
+
+.animate-spin-slow {
+  animation: spin 120s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F5F3FF;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C084FC;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8B5CF6;
+}
