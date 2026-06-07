@@ -56,7 +56,7 @@ export function Contact({ lang, t }: StaticProps) {
             {t().contactEmail}
           </h3>
           <p className="text-lg sm:text-xl font-black text-brand-primary font-mono text-ltr leading-tight">
-            itqan@squ.edu.om
+            misk@squ.edu.om
           </p>
         </div>
       </div>

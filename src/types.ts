@@ -35,6 +35,8 @@ export interface User {
   examResults?: ExamResults;
   avatar?: string;
   level?: string;
+  password?: string;
+  enrollmentDetails?: any;
 }
 
 export interface SessionStudent {

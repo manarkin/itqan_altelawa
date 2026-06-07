@@ -649,152 +649,35 @@ export default function MySession({
         </div>
       </div>
 
-      {/* Gifts Chest Showcase section for STUDENTS */}
+      {/* Session Mates section for STUDENTS */}
       {!isTeacher && (
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-dashed border-brand-primary/25 shadow-xs mb-8">
-          <div className="flex items-center gap-3.5 mb-6 text-start">
-            <div className="w-11 h-11 bg-brand-warm rounded-xl flex items-center justify-center text-brand-dark shadow-sm flex-shrink-0">
-              <GiftIcon className="w-6 h-6" />
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-brand-primary/10 shadow-sm mb-8 text-start">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary flex-shrink-0">
+              <Users className="w-5.5 h-5.5" />
             </div>
             <div>
-              <h4 className="text-lg sm:text-xl font-black text-brand-dark">
-                {lang === 'ar' ? 'خزينة هدايا وجوائز الطالبة' : 'My Gifts & Rewards Cabinet'}
+              <h4 className="text-lg font-black text-brand-dark">
+                {lang === 'ar' ? 'زميلات وبنات حلقة التلاوة المرافقة' : 'My Recitation Session Mates'}
               </h4>
-              <p className="text-xs sm:text-sm text-gray-500 font-bold mb-0">
+              <p className="text-xs text-gray-400 font-bold mb-0">
                 {lang === 'ar' 
-                  ? 'تصلك هنا تبريكات المعلمة وجوائزها النقدية بمختلف الأشكال. انقري لفتح الهدية وتحصيل النقود 🪙!' 
-                  : 'Receive greetings and incentive rewards from your teacher here. Click to open and claim 🪙!'}
+                  ? 'قائمة أسماء الطالبات المسجلات معكِ في نفس حلقة التلاوة بنادي مسك بجامعة السلطان قابوس.' 
+                  : 'A list of SQU student partners registered in your current recitation circle.'}
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-6 items-center justify-center sm:justify-start">
-            {user.gifts && user.gifts.length > 0 ? (
-              user.gifts.map((gift) => (
-                <div key={gift.id} className="flex flex-col items-center">
-                  {gift.isOpened ? (
-                    <div className="flex items-center gap-3 p-4 rounded-2xl border border-emerald-100 bg-emerald-50/20 max-w-sm text-start shadow-xs">
-                      <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 flex-shrink-0">
-                        <CheckCircle className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1 mb-0.5 text-xs text-gray-400 font-bold">
-                          <span>🎁</span>
-                          <span>{getGiftName(gift.giftType)}</span>
-                        </div>
-                        <h6 className="font-black text-emerald-600 text-sm mb-0.5">+🪙 {gift.amount}</h6>
-                        <p className="font-medium text-brand-dark text-xs italic mb-0">
-                          &ldquo;{gift.message}&rdquo;
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div 
-                      className="cursor-pointer flex flex-col items-center gap-2 group" 
-                      onClick={() => handleOpenGift(gift.id)}
-                    >
-                      {renderGiftBox(gift)}
-                      <span className="bg-brand-warm text-brand-dark/95 border border-brand-warm text-[0.7rem] px-2 py-0.5 rounded-full font-bold group-hover:scale-105 active:scale-95 transition-all animate-pulse">
-                        {lang === 'ar' ? 'افتح الهدية! 🎁' : 'Open Gift! 🎁'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ))
-            ) : (
-              <div className="w-full py-6 text-center text-gray-400 flex flex-col items-center">
-                <AlertCircle className="w-10 h-10 opacity-30 mb-2" />
-                <p className="text-xs font-bold mb-0">
-                  {lang === 'ar' ? 'لا توجد هدايا بعد في خزنتك.' : 'Your gift chest is empty for now.'}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Exam Results Block */}
-      {user.examResults && showExamResults && (
-        <div 
-          ref={scrollRef} 
-          className="bg-gradient-to-br from-white to-slate-50/50 p-6 sm:p-8 rounded-3xl border-2 border-brand-primary shadow-xl mb-8 relative overflow-hidden"
-        >
-          <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-            <Award className="w-36 h-36" />
-          </div>
-
-          <div className="relative z-10 text-start">
-            <div className="flex items-center gap-3.5 mb-5 border-b border-gray-100 pb-4">
-              <div className="w-12 h-12 bg-brand-warm rounded-full flex items-center justify-center text-brand-dark flex-shrink-0">
-                <ScrollText className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl sm:text-2xl font-black text-brand-dark mb-0">
-                {t().examResults} (SQU Syllabus)
-              </h3>
-            </div>
-
-            {/* Overall Pass/Fail Badge */}
-            <div className="p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-100 flex items-center gap-4 mb-6 shadow-sm">
-              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-emerald-600 flex-shrink-0">
-                <Award className="w-7 h-7" />
-              </div>
-              <div>
-                <h4 className="text-emerald-700 font-black text-lg mb-0.5">{t().pass}</h4>
-                <p className="text-xs sm:text-sm text-emerald-600 font-bold mb-0">{t().passMessage}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Theory Result */}
-              <div className="bg-white p-5 rounded-2xl border border-gray-150 shadow-xs">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="text-brand-primary w-5 h-5" />
-                    <span className="font-extrabold text-brand-dark">{t().theoryExam}</span>
-                  </div>
-                  <span className="bg-emerald-50 text-emerald-600 text-xs py-1 px-3 rounded-full font-black">
-                    {t().pass}
-                  </span>
-                </div>
-                <div className="flex items-end gap-1 mb-3">
-                  <span className="text-4xl font-black text-brand-dark leading-none">{user.examResults.theory}</span>
-                  <span className="text-gray-400 font-bold text-lg">/ 25</span>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-xl flex items-center gap-2 text-xs text-gray-400 font-bold leading-relaxed">
-                  <Info className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <span>{t().theoryScoreInfo}</span>
-                </div>
-              </div>
-
-              {/* Practical Evaluation */}
-              <div className="bg-white p-5 rounded-2xl border border-gray-150 shadow-xs">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="text-amber-500 w-5 h-5" />
-                    <span className="font-extrabold text-brand-dark">{t().practicalExam}</span>
-                  </div>
-                  <span className="bg-emerald-50 text-emerald-600 text-xs py-1 px-3 rounded-full font-black">
-                    {t().pass}
-                  </span>
-                </div>
-                <div className="text-3xl font-black text-emerald-600 mb-3 leading-none uppercase">
-                  {user.examResults.practical}
-                </div>
-                <div className="bg-gray-50 p-3 rounded-xl flex items-center gap-2 text-xs text-gray-400 font-bold leading-relaxed">
-                  <MessageSquare className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <span>{t().practicalEvalInfo}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 text-end">
-              <button 
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-black rounded-lg"
-                onClick={() => setShowExamResults(false)}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {session.students.map((stud) => (
+              <div 
+                key={stud.id} 
+                className="p-3.5 bg-slate-50 border border-gray-100 rounded-xl font-black text-brand-dark flex items-center gap-2.5 text-sm"
               >
-                {lang === 'ar' ? 'إخفاء النتائج' : 'Hide Results'}
-              </button>
-            </div>
+                <div className="w-2.5 h-2.5 bg-brand-primary rounded-full" />
+                <span>{stud.name}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -808,12 +691,12 @@ export default function MySession({
             </div>
             <div>
               <h4 className="text-lg sm:text-xl font-black text-brand-dark">
-                {lang === 'ar' ? 'دليل إدارة شؤون الطالبات ورصد الغياب' : 'Student Directory & Management'}
+                {lang === 'ar' ? 'سجل تفاصيل الطالبات المقيدات بالحلقة' : 'Registered Student Directory'}
               </h4>
               <p className="text-xs sm:text-sm text-gray-400 font-bold mb-0">
                 {lang === 'ar' 
-                  ? 'استعراض بيانات الطالبات بالتفصيل ورصد الغيابات (بعذر / بدون عذر) وإرسال المكافآت التشجيعية.' 
-                  : 'View student profiling, manage excused or unexcused absences, and issue incentive gifts.'}
+                  ? 'استعراض بيانات الطالبات بالتفصيل وتخصصاتهن الدراسية وأرقام هواتفهن بنادي مسك بجامعة السلطان قابوس.' 
+                  : 'View comprehensive student academic streams, contacts, and personal level details.'}
               </p>
             </div>
           </div>
@@ -823,10 +706,10 @@ export default function MySession({
               <thead>
                 <tr className="border-b border-gray-100 text-gray-400 text-xs font-black uppercase tracking-wider text-end select-none">
                   <th className={`pb-3 py-2 text-start ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{lang === 'ar' ? 'الطالبة' : 'Student'}</th>
-                  <th className={`pb-3 py-2 ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{lang === 'ar' ? 'رصيد الجوائز' : 'Gold Coins'}</th>
-                  <th className="pb-3 py-2 text-center">{lang === 'ar' ? 'الغياب بعذر 🟡' : 'Excused Absence 🟡'}</th>
-                  <th className="pb-3 py-2 text-center">{lang === 'ar' ? 'غياب بدون عذر 🔴' : 'Unexcused Absence 🔴'}</th>
-                  <th className={`pb-3 py-2 text-end ${lang === 'ar' ? 'text-left' : 'text-right'}`}>{lang === 'ar' ? 'خيارات الإدارة' : 'Management Actions'}</th>
+                  <th className={`pb-3 py-2 text-start ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{lang === 'ar' ? 'الكلية والأكاديميا' : 'College & Stream'}</th>
+                  <th className={`pb-3 py-2 text-start ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{lang === 'ar' ? 'الهاتف' : 'Phone'}</th>
+                  <th className={`pb-3 py-2 text-start ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{lang === 'ar' ? 'الدفعة' : 'Cohort'}</th>
+                  <th className={`pb-3 py-2 text-end ${lang === 'ar' ? 'text-left' : 'text-right'}`}>{lang === 'ar' ? 'البيانات' : 'Profile'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -847,77 +730,27 @@ export default function MySession({
                       </div>
                     </td>
 
-                    <td className="py-4 font-mono font-black text-emerald-600">
-                      🪙 {stud.money}
+                    <td className="py-4 text-start font-bold text-gray-600">
+                      🎓 {stud.college || (lang === 'ar' ? 'كلية التربية' : 'Education')}
                     </td>
 
-                    <td className="py-4 text-center">
-                      <div className="inline-flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-full border border-gray-100 shadow-sm">
-                        <button 
-                          className="w-5.5 h-5.5 rounded-full flex items-center justify-center bg-white border border-gray-200 font-black hover:bg-gray-100 active:scale-95 text-xs"
-                          onClick={() => handleChangeStudentAbsence(stud.id, 'excused', -1)}
-                        >
-                          -
-                        </button>
-                        <span className="w-6.5 h-6.5 rounded-full bg-amber-400 text-white font-extrabold text-xs flex items-center justify-center shadow-xs">
-                          {stud.absencesExcused}
-                        </span>
-                        <button 
-                          className="w-5.5 h-5.5 rounded-full flex items-center justify-center bg-white border border-gray-200 font-black hover:bg-gray-100 active:scale-95 text-xs"
-                          onClick={() => handleChangeStudentAbsence(stud.id, 'excused', 1)}
-                        >
-                          +
-                        </button>
-                      </div>
+                    <td className="py-4 text-start font-mono text-gray-600">
+                      📱 {stud.phone || '+968 9345 6789'}
                     </td>
 
-                    <td className="py-4 text-center">
-                      <div className="inline-flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-full border border-gray-100 shadow-sm">
-                        <button 
-                          className="w-5.5 h-5.5 rounded-full flex items-center justify-center bg-white border border-gray-200 font-black hover:bg-gray-100 active:scale-95 text-xs"
-                          onClick={() => handleChangeStudentAbsence(stud.id, 'unexcused', -1)}
-                        >
-                          -
-                        </button>
-                        <span className="w-6.5 h-6.5 rounded-full bg-red-600 text-white font-extrabold text-xs flex items-center justify-center shadow-xs">
-                          {stud.absencesUnexcused}
-                        </span>
-                        <button 
-                          className="w-5.5 h-5.5 rounded-full flex items-center justify-center bg-white border border-gray-200 font-black hover:bg-gray-100 active:scale-95 text-xs"
-                          onClick={() => handleChangeStudentAbsence(stud.id, 'unexcused', 1)}
-                        >
-                          +
-                        </button>
-                      </div>
+                    <td className="py-4 text-start font-bold text-gray-500">
+                      🆔 Cohort {stud.cohort || '2022'}
                     </td>
 
                     <td className="py-4 text-end">
                       <div className={`flex flex-wrap items-center gap-2 ${lang === 'ar' ? 'justify-start' : 'justify-end'}`}>
                         {/* Profile Card Trigger */}
                         <button 
-                          className="px-2.5 py-1.5 rounded-lg border border-gray-150 hover:bg-gray-50 text-gray-500 font-bold flex items-center gap-1.5 text-xs transition-all"
+                          className="px-2.5 py-1.5 rounded-lg border border-gray-150 hover:bg-gray-50 text-gray-500 font-bold flex items-center gap-1.5 text-xs transition-all cursor-pointer"
                           onClick={() => setActiveInfoStudent(stud)}
                         >
                           <Info className="w-4 h-4" />
                           <span>{lang === 'ar' ? 'عرض البيانات' : 'Profile'}</span>
-                        </button>
-
-                        {/* Gift award */}
-                        <button 
-                          className="px-2.5 py-1.5 rounded-lg bg-brand-primary text-white font-bold flex items-center gap-1.5 text-xs hover:bg-brand-accent transition-all cursor-pointer shadow-xs"
-                          onClick={() => setGiftModalStudentId(stud.id)}
-                        >
-                          <GiftIcon className="w-4 h-4" />
-                          <span>{lang === 'ar' ? 'إرسال هدية' : 'Send Gift'}</span>
-                        </button>
-
-                        {/* Delete roster */}
-                        <button 
-                          className="p-1.5 rounded-lg border border-red-150 hover:bg-red-50 text-red-500 transition-colors"
-                          onClick={() => handleDeleteStudent(stud.id)}
-                          title={lang === 'ar' ? 'إزالة الطالبة من الحلقة' : 'Remove Student'}
-                        >
-                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -928,193 +761,6 @@ export default function MySession({
           </div>
         </div>
       )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left column: Announcements & feeds */}
-        <div className="lg:col-span-8 text-start">
-          <div className="flex justify-between items-center mb-6">
-            <h4 className="text-xl sm:text-2xl font-black text-brand-dark flex items-center gap-2">
-              <Megaphone className="text-brand-primary w-6 h-6" />
-              {t().teacherAnnouncements}
-            </h4>
-            {isTeacher && (
-              <button 
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-brand-primary text-white text-xs font-black shadow-sm hover:bg-brand-accent transition-all duration-200 cursor-pointer"
-                onClick={() => setNewAnnouncementModal(true)}
-              >
-                <Plus className="w-4.5 h-4.5" />
-                <span>{t().postAnnouncement}</span>
-              </button>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-6">
-            {announcements.length === 0 ? (
-              <div className="bg-white p-10 rounded-3xl border border-dashed text-center flex flex-col items-center">
-                <AlertCircle className="opacity-15 w-16 h-16 text-gray-400 mb-3" />
-                <p className="text-gray-400 font-bold mb-0">No announcements yet.</p>
-              </div>
-            ) : (
-              announcements.map((ann) => (
-                <div key={ann.id} className="bg-white rounded-3xl border border-brand-primary/15 shadow-xs overflow-hidden">
-                  <div className="p-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="flex gap-2">
-                        <span className="bg-brand-neutral text-brand-primary border border-brand-primary/10 text-xs py-1 px-3 rounded-full font-mono">
-                          {ann.date}
-                        </span>
-                        {ann.type !== 'text' && (
-                          <span className="bg-brand-warm/15 text-brand-dark border border-brand-warm/25 text-[0.65rem] uppercase py-1 px-2.5 rounded-full font-black select-none">
-                            {ann.type}
-                          </span>
-                        )}
-                      </div>
-
-                      {isTeacher && (
-                        <button 
-                          className="text-red-500 hover:text-red-700 flex items-center gap-1.5 border border-red-100 hover:bg-red-50 px-2 py-1 rounded-lg text-xs"
-                          onClick={() => handleDeleteAnnouncement(ann.id)}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>{lang === 'ar' ? 'حذف' : 'Delete'}</span>
-                        </button>
-                      )}
-                    </div>
-
-                    <p className="text-base sm:text-lg font-bold text-brand-dark mb-4 leading-relaxed">
-                      {ann.text}
-                    </p>
-
-                    {/* image attachments */}
-                    {ann.type === 'image' && ann.attachment && (
-                      <div className="rounded-2xl overflow-hidden border border-gray-100 mb-4 max-h-96">
-                        <img 
-                          src={ann.attachment} 
-                          alt="" 
-                          className="w-full object-cover" 
-                          referrerPolicy="no-referrer"
-                        />
-                      </div>
-                    )}
-
-                    {/* video mock attachments */}
-                    {ann.type === 'video' && (
-                      <div className="aspect-video rounded-2xl overflow-hidden border border-gray-100 mb-4 bg-slate-900 flex flex-col items-center justify-center text-white select-none">
-                        <PlayCircle className="w-16 h-16 text-white/50 animate-pulse cursor-pointer" />
-                        <span className="mt-2 text-xs text-white/40">{lang === 'ar' ? 'مشغّل فيديو مدمج' : 'Embedded Video Player'}</span>
-                      </div>
-                    )}
-
-                    {/* Link attachments */}
-                    {ann.type === 'link' && ann.attachment && (
-                      <a 
-                        href={ann.attachment} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-gray-50/50 hover:bg-brand-neutral/20 border border-gray-100 hover:border-brand-primary/30 text-decoration-none transition-all duration-200"
-                      >
-                        <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center border border-gray-100 shadow-sm text-brand-primary">
-                          <ExternalLink className="w-4.5 h-4.5" />
-                        </div>
-                        <span className="text-sm font-extrabold text-brand-dark overflow-hidden text-ellipsis whitespace-nowrap block max-w-sm">
-                          {ann.attachment}
-                        </span>
-                      </a>
-                    )}
-
-                    {/* PDF Document attachments */}
-                    {ann.type === 'pdf' && (
-                      <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-gray-50/50 border border-gray-150 select-none">
-                        <div className="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center flex-shrink-0">
-                          <FileText className="w-5.5 h-5.5" />
-                        </div>
-                        <div className="overflow-hidden text-ellipsis">
-                          <span className="text-sm font-extrabold text-brand-dark block text-nowrap text-truncate">
-                            SQU_Itqan_Chapter_Tajweed_Part1.pdf
-                          </span>
-                          <span className="text-xs text-gray-400 font-bold block mt-0.5">
-                            PDF Document - 1.2 MB (Mocked)
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Poll attachments */}
-                    {ann.type === 'poll' && ann.pollOptions && (
-                      <div className="flex flex-col gap-2.5">
-                        {ann.pollOptions.map((opt) => {
-                          const totalVotes = ann.pollOptions?.reduce((acc, curr) => acc + curr.votes, 0) || 0;
-                          const percent = totalVotes > 0 ? (opt.votes / totalVotes) * 100 : 0;
-                          const hasVoted = ann.voted === opt.id;
-
-                          return (
-                            <div 
-                              key={opt.id} 
-                              className={`relative p-3.5 rounded-2xl border-2 cursor-pointer transition-all overflow-hidden ${
-                                hasVoted 
-                                  ? 'border-brand-primary bg-brand-primary/5' 
-                                  : 'border-gray-150 hover:bg-brand-neutral/10'
-                              }`}
-                              onClick={() => handleVotePoll(ann.id, opt.id)}
-                            >
-                              <div 
-                                className="absolute top-0 bottom-0 left-0 bg-brand-primary/10 transition-all duration-500 ease-out" 
-                                style={{ width: `${percent}%` }}
-                              ></div>
-                              <div className="relative z-10 flex justify-between items-center text-sm">
-                                <span className="font-extrabold text-brand-dark">{opt.text}</span>
-                                <div className="flex items-center gap-2">
-                                  {hasVoted && <CheckCircle className="w-4.5 h-4.5 text-brand-primary" />}
-                                  <span className="text-xs font-black text-gray-500 font-mono">
-                                    {Math.round(percent)}% ({opt.votes} {t().totalVotes})
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Right column: leaderboard stats */}
-        <div className="lg:col-span-4 text-start select-none">
-          <div className="bg-white rounded-3xl border border-brand-primary/10 shadow-sm p-5">
-            <h5 className="text-base font-black text-brand-dark flex items-center gap-2 mb-4">
-              <Award className="text-brand-warm w-6 h-6" />
-              {t().sessionLeaderboard} (SQU Stars)
-            </h5>
-
-            <div className="flex flex-col gap-2.5">
-              {session.students.slice().sort((a,b) => b.money - a.money).map((stud, index) => (
-                <div 
-                  key={stud.id} 
-                  className="flex items-center justify-between p-2.5 bg-gray-50/50 rounded-xl border border-gray-100"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[0.7rem] font-black font-mono text-white ${
-                      index === 0 ? 'bg-amber-500' : index === 1 ? 'bg-slate-400' : index === 2 ? 'bg-amber-700' : 'bg-gray-200 text-gray-500'
-                    }`}>
-                      {index + 1}
-                    </span>
-                    <span className="font-extrabold text-brand-dark text-xs">{stud.name}</span>
-                  </div>
-                  <span className="text-emerald-600 font-extrabold text-xs font-mono">
-                    🪙 {stud.money}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-      </div>
 
       {/* --- MODALS --- */}
 
@@ -1477,7 +1123,7 @@ export default function MySession({
               <div>
                 <h5 className="font-black text-brand-dark text-base mb-0.5">{activeInfoStudent.name}</h5>
                 <span className="bg-brand-neutral text-brand-primary text-[0.65rem] border py-0.5 px-2 rounded-full font-bold">
-                  {lang === 'ar' ? 'طالبة مقيدة بنادي إتقان' : 'Registered Member - Itqan SQU'}
+                  {lang === 'ar' ? 'طالبة مقيدة بنادي مسك' : 'Registered Member - Misk SQU'}
                 </span>
               </div>
             </div>

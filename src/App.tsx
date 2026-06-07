@@ -110,9 +110,37 @@ export default function App() {
   const t = () => translations[lang];
 
   // --- Login handler with rich initial data ---
-  const handleLogin = (emailAddress: string) => {
+  const handleLogin = (emailAddress: string, passwordInput?: string) => {
     const lower = emailAddress.toLowerCase();
     
+    // Check if there is a custom registered user in local storage
+    const customRegisteredStr = localStorage.getItem('registered_user_' + lower);
+    if (customRegisteredStr) {
+      const parsed = JSON.parse(customRegisteredStr);
+      if (passwordInput && parsed.password && parsed.password !== passwordInput) {
+        alert(lang === 'ar' ? 'كلمة المرور غير صحيحة!' : 'Incorrect password!');
+        return;
+      }
+      setUser(parsed);
+      setCurrentView('home');
+      return;
+    }
+    
+    // Check if there is a modified user object in localStorage for itqan_user
+    const savedUserStr = localStorage.getItem('itqan_user');
+    if (savedUserStr) {
+      const parsedSaved = JSON.parse(savedUserStr);
+      if (parsedSaved.email && parsedSaved.email.toLowerCase() === lower) {
+        if (passwordInput && parsedSaved.password && parsedSaved.password !== passwordInput) {
+          alert(lang === 'ar' ? 'كلمة المرور غير صحيحة!' : 'Incorrect password!');
+          return;
+        }
+        setUser(parsedSaved);
+        setCurrentView('home');
+        return;
+      }
+    }
+
     if (lower.includes('admin')) {
       setUser({
         firstName: 'ريم',
@@ -125,7 +153,8 @@ export default function App() {
         absencesExcused: 1,
         absencesUnexcused: 0,
         gifts: [],
-        avatar: 'https://picsum.photos/seed/admin_avatar/200/200'
+        avatar: 'https://picsum.photos/seed/admin_avatar/200/200',
+        password: '123'
       });
     } else if (lower.includes('teacher')) {
       setUser({
@@ -139,7 +168,8 @@ export default function App() {
         absencesExcused: 0,
         absencesUnexcused: 0,
         gifts: [],
-        avatar: 'https://picsum.photos/seed/coach/200/200'
+        avatar: 'https://picsum.photos/seed/coach/200/200',
+        password: '123'
       });
     } else {
       // SQU Student Aisha Al-Hinai with pass exams status teaser & coin chests
@@ -166,7 +196,8 @@ export default function App() {
           practical: 'PASS',
           averageTheory: 20
         },
-        avatar: 'https://picsum.photos/seed/s4/100/100'
+        avatar: 'https://picsum.photos/seed/s4/100/100',
+        password: '123'
       });
     }
 
@@ -178,12 +209,16 @@ export default function App() {
     setCurrentView('home');
   };
 
-  const submitEnrollRequest = () => {
+  const submitEnrollRequest = (details?: any) => {
     // Submit student join request successfully
     if (user) {
-      setUser(prev => prev ? { ...prev, isEnrolled: true } : null);
+      setUser(prev => {
+        if (!prev) return null;
+        const updated = { ...prev, isEnrolled: true, enrollmentDetails: details };
+        localStorage.setItem('itqan_user', JSON.stringify(updated));
+        return updated;
+      });
     }
-    alert(lang === 'ar' ? 'تم إرسال طلب تلاوتك بنجاح وتقييم تمكينكِ بجدارة!' : 'Enrollment application submitted successfully!');
   };
 
   const viewExamResults = () => {
@@ -204,6 +239,7 @@ export default function App() {
             lang={lang}
             submitEnrollRequest={submitEnrollRequest}
             viewExamResults={viewExamResults}
+            setUser={setUser}
             t={t}
           />
         );
@@ -222,6 +258,7 @@ export default function App() {
             navigate={setCurrentView} 
             lang={lang} 
             t={t} 
+            setUser={setUser}
           />
         );
       case 'mysession':
@@ -300,6 +337,7 @@ export default function App() {
             lang={lang}
             submitEnrollRequest={submitEnrollRequest}
             viewExamResults={viewExamResults}
+            setUser={setUser}
             t={t}
           />
         );
@@ -335,8 +373,8 @@ export default function App() {
           xmlns="http://www.w3.org/2000/svg"
         >
           <circle cx="50" cy="50" r="48" stroke="currentColor" strokeWidth="0.5" strokeDasharray="1 2"/>
-          <path d="M50 2L55 35L88 20L70 50L100 65L65 65L80 98L50 80L20 98L35 65L0 65L30 50L12 20L45 35L50 2Z" stroke="currentColor" stroke-width="0.5"/>
-          <circle cx="50" cy="50" r="15" stroke="currentColor" stroke-width="0.5"/>
+          <path d="M50 2L55 35L88 20L70 50L100 65L65 65L80 98L50 80L20 98L35 65L0 65L30 50L12 20L45 35L50 2Z" stroke="currentColor" strokeWidth="0.5"/>
+          <circle cx="50" cy="50" r="15" stroke="currentColor" strokeWidth="0.5"/>
         </svg>
       </div>
 

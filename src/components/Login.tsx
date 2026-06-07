@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 interface LoginProps {
-  handleLogin: (email: string) => void;
+  handleLogin: (email: string, password?: string) => void;
   navigate: (view: string) => void;
   lang: 'ar' | 'en';
   t: () => any;
@@ -22,7 +22,7 @@ export default function Login({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (email) {
-      handleLogin(email);
+      handleLogin(email, password);
     }
   };
 

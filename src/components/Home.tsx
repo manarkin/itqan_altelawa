@@ -1,35 +1,87 @@
+import React, { useState } from 'react';
 import { User, Announcement, LeaderboardEntry } from '../types';
-import { Megaphone, Pin, Award, ScrollText, Medal, CheckCircle } from 'lucide-react';
+import { 
+  Award, 
+  ScrollText, 
+  CheckCircle,
+  Calendar,
+  Briefcase,
+  GraduationCap,
+  Info,
+  Undo2,
+  BookOpen,
+  ShieldCheck,
+  UserCheck,
+  MapPin,
+  Laptop
+} from 'lucide-react';
 
 interface HomeProps {
   user: User | null;
-  announcements: Announcement[];
-  leaderboard: LeaderboardEntry[];
+  announcements?: Announcement[];
+  leaderboard?: LeaderboardEntry[];
   navigate: (view: string) => void;
   lang: 'ar' | 'en';
-  submitEnrollRequest: () => void;
+  submitEnrollRequest: (details?: any) => void;
   viewExamResults: () => void;
+  setUser?: React.Dispatch<React.SetStateAction<User | null>>;
   t: () => any;
 }
 
+const ALL_DAYS = [
+  { key: 'Sunday', ar: 'الأحد', en: 'Sunday' },
+  { key: 'Monday', ar: 'الاثنين', en: 'Monday' },
+  { key: 'Tuesday', ar: 'الثلاثاء', en: 'Tuesday' },
+  { key: 'Wednesday', ar: 'الأربعاء', en: 'Wednesday' },
+  { key: 'Thursday', ar: 'الخميس', en: 'Thursday' },
+  { key: 'Friday', ar: 'الجمعة', en: 'Friday' },
+  { key: 'Saturday', ar: 'السبت', en: 'Saturday' }
+];
+
+const ALL_SLOTS = [
+  { key: 'Fajr', ar: 'فجرية', en: 'Fajr (Early Morning)' },
+  { key: '8:00-9:15', ar: '٨:٠٠ - ٩:١٥ ص', en: '8:00 - 9:15 AM' },
+  { key: '10:00-11:15', ar: '١٠:٠٠ - ١١:١٥ ص', en: '10:00 - 11:15 AM' },
+  { key: '12:00-1:15', ar: '١٢:٠٠ - ١:١٥ ظ', en: '12:00 - 1:15 PM' },
+  { key: '2:15-3:30', ar: '٢:١٥ - ٣:٣٠ ظ', en: '2:15 - 3:30 PM' },
+  { key: '4:15-5:30', ar: '٤:١٥ - ٥:٣٠ ع', en: '4:15 - 5:30 PM' }
+];
+
 export default function Home({
   user,
-  announcements,
-  leaderboard,
   navigate,
   lang,
   submitEnrollRequest,
   viewExamResults,
+  setUser,
   t
 }: HomeProps) {
+  const isAr = lang === 'ar';
+  const tField = (ar: string, en: string) => isAr ? ar : en;
+
+  // Form State for Join Session
+  const [studentType, setStudentType] = useState<'undergrad' | 'postgrad'>(() => {
+    if (user && user.degree && user.degree.toLowerCase() !== 'bachelor') {
+      return 'postgrad';
+    }
+    return 'undergrad';
+  });
+
+  // For teachers: Online or In-Person format choice
+  const [teacherFormat, setTeacherFormat] = useState<'online' | 'person'>('online');
+  
+  const [isLastSemester, setIsLastSemester] = useState<boolean>(false);
+  const [timings, setTimings] = useState<Record<string, 'selected' | 'online' | 'person' | undefined>>({});
+  const [notes, setNotes] = useState<string>('');
+
   if (!user) {
     return (
       <div className="max-w-4xl mx-auto text-center py-12 px-4 sm:px-6">
-        <div className="mb-10 animate-fade-in">
+        <div className="mb-10 animate-fade-in animate-duration-500 animate-delay-150">
           <h1 className="text-4xl sm:text-6xl font-black text-brand-dark mb-6 leading-tight">
             {t().heroTitle}
           </h1>
-          <p className="text-2xl sm:text-3.5xl text-brand-accent mb-10 font-serif leading-loose px-4 max-w-2xl mx-auto">
+          <p className="text-2xl sm:text-3.5xl text-amber-500 mb-10 font-serif leading-loose px-4 max-w-2xl mx-auto">
             “{t().heroSubtitle}”
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4 max-w-md mx-auto">
@@ -51,135 +103,600 @@ export default function Home({
     );
   }
 
+  const isTeacher = user.role === 'TEACHER' || user.role === 'ADMIN';
+
+  // Define active days based on student/teacher role and format preferences
+  let activeDays = ALL_DAYS.slice(0, 5); // Sunday to Thursday default
+  if (isTeacher) {
+    if (teacherFormat === 'online') {
+      // Teachers online gets Saturday & Friday columns besides Sun-Thu
+      activeDays = ALL_DAYS;
+    } else {
+      activeDays = ALL_DAYS.slice(0, 5);
+    }
+  } else {
+    if (studentType === 'postgrad') {
+      // Postgraduate students also get Sunday, Friday & Saturday
+      activeDays = ALL_DAYS;
+    } else {
+      activeDays = ALL_DAYS.slice(0, 5);
+    }
+  }
+
+  // Define active slots based on student/teacher role and preferences
+  let activeSlots = ALL_SLOTS.slice(1); // Default is standard 5 slots (no Fajr)
+  if (isTeacher) {
+    if (teacherFormat === 'online') {
+      activeSlots = ALL_SLOTS; // includes Fajr
+    } else {
+      activeSlots = ALL_SLOTS.slice(1); // Fajr cannot be held in person!
+    }
+  } else {
+    if (studentType === 'postgrad') {
+      activeSlots = ALL_SLOTS; // Postgraduate gets Fajr
+    } else {
+      activeSlots = ALL_SLOTS.slice(1);
+    }
+  }
+
+  // Handle slot cell clicking
+  const handleSlotClick = (dayKey: string, slotKey: string) => {
+    const key = `${dayKey}_${slotKey}`;
+    
+    if (isTeacher) {
+      // Simple selection toggle for teachers based on their selected overall format
+      setTimings(prev => ({
+        ...prev,
+        [key]: prev[key] === 'selected' ? undefined : 'selected'
+      }));
+    } else {
+      if (studentType === 'undergrad') {
+        setTimings(prev => ({
+          ...prev,
+          [key]: prev[key] === 'selected' ? undefined : 'selected'
+        }));
+      } else {
+        // Postgraduate cycle selector: undefined -> 'online' -> 'person' -> undefined
+        setTimings(prev => {
+          const current = prev[key];
+          let next: 'selected' | 'online' | 'person' | undefined = undefined;
+          
+          if (!current) {
+            next = 'online';
+          } else if (current === 'online') {
+            // Constraint: Fajr ("فجرية") cannot be held in-person!
+            if (slotKey === 'Fajr') {
+              next = undefined; // Skips "person", resets to empty
+            } else {
+              next = 'person';
+            }
+          }
+          
+          return {
+            ...prev,
+            [key]: next
+          };
+        });
+      }
+    }
+  };
+
+  const handleEnrollSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Check if at least one slot is selected
+    const selectedKeys = Object.entries(timings).filter(([_, val]) => !!val);
+    if (selectedKeys.length === 0) {
+      alert(tField(
+        'يرجى تحديد وقت واحد على الأقل لإرسال رغبات جدولك الدراسي!', 
+        'Please select at least one hour on the calendar grid to submit your schedule!'
+      ));
+      return;
+    }
+
+    const details = {
+      studentType: isTeacher ? 'teacher' : studentType,
+      teacherFormat: isTeacher ? teacherFormat : undefined,
+      isLastSemester: (!isTeacher && studentType === 'undergrad') ? isLastSemester : undefined,
+      timings,
+      notes,
+      submittedAt: new Date().toLocaleDateString(lang === 'ar' ? 'ar-OM' : 'en-US')
+    };
+
+    submitEnrollRequest(details);
+    alert(tField(
+      'تم إرسال طلب تسجيل خيارات تلاوتك وتوقيتاتك بنجاح للفرز والمطابقة ببرنامج مسك بجامعة السلطان قابوس!', 
+      'Your timing preferences and registration details have been successfully submitted!'
+    ));
+  };
+
+  const handleResetRegistration = () => {
+    const confirmMsg = tField(
+      'هل أنتِ متأكدة من رغبتكِ في تعديل خيارات التوقيت وإعادة التقديم؟',
+      'Are you sure you want to review and modify your current timing schedule?'
+    );
+    if (window.confirm(confirmMsg) && setUser) {
+      setUser(prev => {
+        if (!prev) return null;
+        const updated = {
+          ...prev,
+          isEnrolled: false,
+          enrollmentDetails: undefined
+        };
+        localStorage.setItem('itqan_user', JSON.stringify(updated));
+        return updated;
+      });
+    }
+  };
+
+
+
+  // --- UNIFIED VIEW FOR STUDENTS & TEACHERS ---
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Side: Announcements & Exam results (8 columns) */}
-        <div className="lg:col-span-8 flex flex-col gap-8">
-          {/* Announcements Heading */}
-          <div>
-            <h4 className="text-xl sm:text-2xl font-black text-brand-dark flex items-center gap-3">
-              <Megaphone className="text-brand-primary w-7 h-7" />
-              {t().announcements}
-            </h4>
-          </div>
-
-          {/* Announcements Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {announcements.map((ann) => (
-              <div 
-                key={ann.id} 
-                className="bg-white p-6 rounded-3xl border border-brand-primary/10 shadow-sm hover:-translate-y-1.5 hover:shadow-md hover:border-brand-primary/20 transition-all duration-300 flex flex-col justify-between"
-              >
-                <div className="flex justify-between items-center mb-4">
-                  <span className="bg-brand-neutral text-brand-primary/90 text-xs font-bold py-1.5 px-3 rounded-full border border-brand-primary/10 font-mono">
-                    {ann.date}
-                  </span>
-                  <Pin className="text-amber-500 w-4.5 h-4.5" />
-                </div>
-                <p className="font-bold text-brand-dark text-[1.05rem] leading-relaxed mb-0">
-                  {ann.text}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* Exam Results Banner teaser if available */}
-          {user.examResults && (
-            <div className="bg-linear-to-br from-white to-amber-50/50 p-6 rounded-3xl border-2 border-brand-primary/25 shadow-md flex flex-col md:flex-row items-center gap-5 hover:border-brand-primary/40 transition-all duration-300">
-              <div className="w-16 h-16 bg-amber-400 rounded-full flex items-center justify-center text-brand-dark shadow-sm flex-shrink-0">
-                <ScrollText className="w-8 h-8" />
-              </div>
-              <div className="flex-grow text-center md:text-start">
-                <h4 className="text-lg font-black text-brand-dark mb-1">{t().examResults}</h4>
-                <p className="text-sm text-gray-500 font-bold mb-0">{t().examResultsBody}</p>
-              </div>
-              <div className="w-full md:w-auto flex-shrink-0">
-                <button 
-                  className="w-full px-5 py-2.5 bg-brand-primary text-white text-sm font-black rounded-xl hover:bg-brand-accent transition-all duration-200 shadow-sm cursor-pointer"
-                  onClick={viewExamResults}
-                >
-                  {t().viewResults}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Registration Enrollment Status */}
-          <div className="bg-brand-primary/5 border border-dashed border-brand-primary/30 p-8 rounded-3xl shadow-xs text-center md:text-start">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <div>
-                <h3 className="text-xl sm:text-2xl font-black text-brand-dark mb-2">{t().enrollRequest}</h3>
-                <p className="text-gray-500 text-sm sm:text-base font-bold mb-0">{t().enrollSubtitle}</p>
-              </div>
-              <div className="w-full md:w-auto flex-shrink-0">
-                {user.isEnrolled ? (
-                  <span className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 font-black text-sm rounded-full border border-emerald-100 shadow-xs">
-                    <CheckCircle className="w-4.5 h-4.5" />
-                    {t().registered}
-                  </span>
-                ) : (
-                  <button 
-                    className="w-full px-6 py-3 bg-brand-primary text-white text-base font-black rounded-xl hover:bg-brand-accent transition-all duration-200 cursor-pointer shadow-md shadow-brand-primary/10" 
-                    onClick={submitEnrollRequest}
-                  >
-                    {t().applyNow}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
+    <div className="max-w-4xl mx-auto px-4 py-4 select-none">
+      
+      {/* Dynamic SQU Welcome Banner (no absence/coins HUD displayed) */}
+      <div className="bg-gradient-to-br from-brand-dark to-slate-900 rounded-3xl p-6 sm:p-8 text-white text-start shadow-md mb-8 relative overflow-hidden">
+        <div className="absolute right-0 bottom-0 top-0 opacity-[0.04] pointer-events-none">
+          <svg className="w-96 h-96 text-white" viewBox="0 0 100 100" fill="currentColor">
+            <path d="M50 0 L100 50 L50 100 L0 50 Z" />
+          </svg>
         </div>
-
-        {/* Right Side: Leaderboard (4 columns) */}
-        <div className="lg:col-span-4 select-none">
-          <div className="bg-white rounded-3xl border border-brand-primary/10 shadow-lg overflow-hidden">
-            <div className="bg-brand-primary px-6 py-5 flex items-center gap-3">
-              <Medal className="text-brand-warm w-7 h-7 animate-bounce" />
-              <h5 className="text-base font-black text-white uppercase tracking-wider mb-0">
-                {t().leaderboard}
-              </h5>
-            </div>
-            
-            <div className="p-4 md:p-5 flex flex-col gap-3.5">
-              {leaderboard.map((student, index) => (
-                <div 
-                  key={student.id} 
-                  className="flex items-center justify-between p-3.5 rounded-2xl border border-gray-50 hover:border-brand-primary/20 hover:bg-brand-neutral/20 transition-all duration-300"
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Rank Circle */}
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm shadow-xs ${
-                      index === 0 
-                        ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white' 
-                        : index === 1 
-                        ? 'bg-gradient-to-br from-slate-400 to-slate-500 text-white' 
-                        : index === 2 
-                        ? 'bg-gradient-to-br from-amber-700 to-amber-800 text-white' 
-                        : 'bg-gray-100 text-gray-500 border border-gray-200'
-                    }`}>
-                      {index + 1}
-                    </div>
-                    {/* Avatar */}
-                    <img 
-                      src={student.avatar} 
-                      alt="" 
-                      className="w-10 h-10 rounded-full border border-gray-100 shadow-xs flex-shrink-0" 
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="font-bold text-brand-dark text-sm">
-                      {student.name}
-                    </div>
-                  </div>
-                  <div className="text-emerald-600 font-extrabold text-sm font-mono whitespace-nowrap">
-                    🪙 {student.money}
-                  </div>
-                </div>
-              ))}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
+          <div>
+            <h2 className="text-xl sm:text-3xl font-black tracking-tight leading-tight mb-1.5 animate-fade-in">
+              {isTeacher 
+                ? tField(`أهلاً بكِ، أ. ${user.firstName}!`, `Welcome, Mentor ${user.firstName}!`)
+                : tField(`مرحباً بكِ، ${user.firstName} ${user.lastName}!`, `Welcome, ${user.firstName} ${user.lastName}!`)
+              }
+            </h2>
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-350 font-bold">
+              <span>🎓 {user.college || tField('جامعة السلطان قابوس', 'SQU institution')}</span>
+              <span>•</span>
+              <span>🆔 Role: {user.role}</span>
+              {user.cohort && (
+                <>
+                  <span>•</span>
+                  <span>Cohort {user.cohort}</span>
+                </>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* DYNAMIC REGISTRATION AND SCHEDULE COORDINATION MODULE */}
+      {user.isEnrolled && user.enrollmentDetails ? (
+        
+        /* Receipt / Registered schedule view card */
+        <div className="bg-white rounded-3xl border border-brand-primary/20 shadow-xl p-6 sm:p-8 text-start relative overflow-hidden animate-fade-in animate-duration-500">
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-emerald-500" />
+          
+          <div className="flex items-start gap-4 mb-6">
+            <div className="w-11 h-11 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 flex-shrink-0">
+              <CheckCircle className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-lg sm:text-xl font-black text-brand-dark leading-snug mb-1">
+                {isTeacher 
+                  ? tField('لقد تم تقديم رغبات ميعاد حلقة التلاوة القرآني!', 'Quranic Mentor Circle Session Schedule Received!')
+                  : tField('طلب الالتحاق بالحلقات القرآني نشط وجاري المراجعة!', 'Recitation Student Enrollment Schedule Received!')
+                }
+              </h3>
+              <p className="text-xs text-emerald-600 font-extrabold mb-0 flex items-center gap-1.5">
+                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping" />
+                {tField('الحالة الحالية: قيد التنسيق والملاءمة مع شؤون الحلقات بالنادي', 'Status: Mapping coordinates with SQU circle schedulers')}
+              </p>
+            </div>
+          </div>
+
+          {/* Details list */}
+          <div className="bg-slate-50 border border-gray-150 rounded-2xl p-5 mb-6 space-y-4 font-bold text-xs sm:text-sm text-gray-650">
+            
+            <div className="flex flex-col sm:flex-row justify-between border-b border-gray-100 pb-3 gap-1">
+              <span className="text-gray-400 font-bold">{tField('نمط العضو بالبرنامج:', 'Academic Role Profile:')}</span>
+              <span className="text-brand-dark font-black">
+                {isTeacher ? (
+                  tField('أستاذة وموجهة تلاوة معتمدة', 'SQU Certified Recitation Mentor')
+                ) : (
+                  user.enrollmentDetails.studentType === 'undergrad' 
+                    ? tField('طالبة دراسات أولية (بكالوريوس)', 'Undergraduate student')
+                    : tField('طالبة دراسات عليا / موظفة جامعة', 'Postgraduate Student / SQU Staff')
+                )}
+              </span>
+            </div>
+
+            {isTeacher && user.enrollmentDetails.teacherFormat && (
+              <div className="flex flex-col sm:flex-row justify-between border-b border-gray-100 pb-3 gap-1">
+                <span className="text-gray-400 font-bold">{tField('قناة التدريس المفضلة:', 'Preferred Recitation Format:')}</span>
+                <span className="text-brand-dark font-black">
+                  {user.enrollmentDetails.teacherFormat === 'online' 
+                    ? tField('حلقات رقمية (عن بعد 💻)', 'Digital Recitation (Online 💻)') 
+                    : tField('حلقات فعلية (حضوري 🏫)', 'Physical Recitation (In-Person 🏫)')}
+                </span>
+              </div>
+            )}
+
+            {!isTeacher && user.enrollmentDetails.studentType === 'undergrad' && (
+              <div className="flex flex-col sm:flex-row justify-between border-b border-gray-100 pb-3 gap-1">
+                <span className="text-gray-400 font-bold">{tField('الفصل الدراسي الأخير بالجامعة؟', 'Is this your final SQU semester?')}</span>
+                <span className="text-brand-dark font-black">
+                  {user.enrollmentDetails.isLastSemester 
+                    ? tField('نعم - خريجة هذا الفصل 🎓', 'Yes - Graduating senior 🎓') 
+                    : tField('لا - طالبة مستمرة بالدراسة', 'No - Continuing standard academic status')}
+                </span>
+              </div>
+            )}
+
+            <div>
+              <span className="text-gray-400 font-bold block mb-3">{tField('ساعات التوقيت المستهدفة:', 'Your Target Weekly Timing Slots:')}</span>
+              
+              <div className="flex flex-wrap gap-2 pt-1">
+                {Object.entries(user.enrollmentDetails.timings || {}).filter(([_, val]) => !!val).map(([key, value]) => {
+                  const [dayKey, slotKey] = key.split('_');
+                  const targetDay = ALL_DAYS.find(d => d.key === dayKey);
+                  const targetSlot = ALL_SLOTS.find(s => s.key === slotKey);
+                  
+                  if (!targetDay || !targetSlot) return null;
+
+                  let label = isAr ? `${targetDay.ar} - ${targetSlot.ar}` : `${targetDay.en} - ${targetSlot.en}`;
+                  if (value === 'online') {
+                    label += ` (${tField('عن بعد 💻', 'Online 💻')})`;
+                  } else if (value === 'person') {
+                    label += ` (${tField('حضوري 🏫', 'In-Person 🏫')})`;
+                  }
+
+                  return (
+                    <span 
+                      key={key}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-black ${
+                        value === 'online' || isTeacher && user.enrollmentDetails.teacherFormat === 'online'
+                          ? 'bg-sky-50 text-sky-700 border-sky-200' 
+                          : value === 'person' || isTeacher && user.enrollmentDetails.teacherFormat === 'person'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                          : 'bg-brand-primary/5 text-brand-primary border-brand-primary/20'
+                      }`}
+                    >
+                      <span>🕒</span>
+                      <span>{label}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="border-t border-gray-100 pt-3 flex flex-col gap-1 text-xs">
+              <span className="text-gray-400 font-bold">{tField('ملاحظات المنسق ومطالب التدريس:', 'Remarks / Notes:')}</span>
+              <p className="text-brand-dark font-medium italic mt-1 mb-0 p-3 bg-white rounded-xl border border-gray-100">
+                {user.enrollmentDetails.notes || tField('لا توجد ملاحظات تخصصية إضافية.', 'No additional specific guidelines noted.')}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center select-none font-black text-xs text-gray-400">
+            <span>{tField('تاريخ تقديم الخيارات:', 'Submitted on:')} {user.enrollmentDetails.submittedAt}</span>
+            
+            <button 
+              onClick={handleResetRegistration}
+              className="flex items-center gap-1.5 px-4 py-2 hover:bg-red-50 text-red-500 rounded-xl border border-transparent hover:border-red-150 transition-all duration-200 cursor-pointer"
+            >
+              <Undo2 className="w-4.5 h-4.5" />
+              <span>{tField('تعديل الحجز والرغبات', 'Edit Preferences & Resubmit')}</span>
+            </button>
+          </div>
+        </div>
+
+      ) : (
+
+        /* Dynamic Registration Form styled beautifully */
+        <div className="bg-white rounded-3xl border border-brand-primary/15 shadow-xl p-6 sm:p-10 text-start animate-fade-in">
+          <div className="flex items-center gap-3.5 mb-6 pb-4 border-b border-gray-100">
+            <div className="w-11 h-11 bg-brand-primary/10 rounded-2xl flex items-center justify-center text-brand-primary flex-shrink-0">
+              <Calendar className="w-5.5 h-5.5" />
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-brand-dark">
+                {isTeacher 
+                  ? tField('رصد واختيار ساعات تسيير الحلقات القرآني للعام الفصول الممتدة', 'Register Teaching Hours availability')
+                  : tField('تقديم طلب التسميع والالتحاق بالحلقات القرآني', 'Register Recital Weekly Session Hours')
+                }
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-400 font-bold mb-0">
+                {isTeacher
+                  ? tField('حددي نمط الحلقة المطلوب لتأمين فرز مجموعات الطالبات بما يتوافق مع نمطك.', 'Select preference formats and hour schedules to map and align student roster lists.')
+                  : tField('أدخلي تطلعاتك التدريبية في التسميع لحجز الساعات المناسبة بنادي مسك بجامعة السلطان قابوس.', 'Provide SQU class parameters and schedule grids to place you in the perfect Quran circle.')
+                }
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleEnrollSubmit} className="space-y-6">
+            
+            {/* Step 1: Select Type */}
+            <div className="space-y-3">
+              <label className="text-xs sm:text-sm font-black text-brand-dark flex items-center gap-1.5">
+                <span>١.</span>
+                <span>
+                  {isTeacher 
+                    ? tField('تحديد نمط التدريب والتحفيظ المفضل لحلقتك:', '1. Target teaching format channel (Online/In-person):')
+                    : tField('تحديد الفئة الأكاديمية للطالبة بالجامعة:', '1. Academic Cohort Streaming:')
+                  }
+                </span>
+              </label>
+
+              {isTeacher ? (
+                /* Teacher format selector */
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div 
+                    className={`p-4 rounded-2xl border-2 cursor-pointer relative transition-all duration-200 flex items-center gap-3.5 ${
+                      teacherFormat === 'online' 
+                        ? 'border-brand-primary bg-brand-primary/5 shadow-xs font-black' 
+                        : 'border-gray-150 hover:bg-slate-50'
+                    }`}
+                    onClick={() => {
+                      setTeacherFormat('online');
+                      setTimings({});
+                    }}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center flex-shrink-0">
+                      <Laptop className="w-5.5 h-5.5" />
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-black text-brand-dark leading-tight mb-1">{tField('حلقة تفاعلية عن بعد (رقمية) 💻', 'Digital Session Circle (Online) 💻')}</h5>
+                      <span className="text-[0.65rem] text-gray-400 font-bold">Zoom/Meet SQU Virtual class integration</span>
+                    </div>
+                  </div>
+
+                  <div 
+                    className={`p-4 rounded-2xl border-2 cursor-pointer relative transition-all duration-200 flex items-center gap-3.5 ${
+                      teacherFormat === 'person' 
+                        ? 'border-brand-primary bg-brand-primary/5 shadow-xs font-black' 
+                        : 'border-gray-150 hover:bg-slate-50'
+                    }`}
+                    onClick={() => {
+                      setTeacherFormat('person');
+                      setTimings({});
+                    }}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-5.5 h-5.5" />
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-black text-brand-dark leading-tight mb-1">{tField('حلقة حضورية (مسجد الجامعة) 🏫', 'In-Person Mosque Circle 🏫')}</h5>
+                      <span className="text-[0.65rem] text-gray-400 font-bold">Physical Recitation in SQU Saffron-colored archs</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Student format selector (Bachelor vs Postgraduate) */
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div 
+                    className={`p-4 rounded-2xl border-2 cursor-pointer relative transition-all duration-200 flex items-center gap-3.5 ${
+                      studentType === 'undergrad' 
+                        ? 'border-brand-primary bg-brand-primary/5 shadow-xs' 
+                        : 'border-gray-150 hover:bg-slate-50'
+                    }`}
+                    onClick={() => {
+                      setStudentType('undergrad');
+                      setTimings({});
+                    }}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center flex-shrink-0">
+                      <GraduationCap className="w-5.5 h-5.5" />
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-black text-brand-dark leading-tight mb-1">{tField('طالبة دراسات أولية (بكالوريوس)', 'Undergraduate student')}</h5>
+                      <span className="text-[0.65rem] text-gray-400 font-bold">Standard Bachelor Degree Student</span>
+                    </div>
+                  </div>
+
+                  <div 
+                    className={`p-4 rounded-2xl border-2 cursor-pointer relative transition-all duration-200 flex items-center gap-3.5 ${
+                      studentType === 'postgrad' 
+                        ? 'border-brand-primary bg-brand-primary/5 shadow-xs' 
+                        : 'border-gray-150 hover:bg-slate-50'
+                    }`}
+                    onClick={() => {
+                      setStudentType('postgrad');
+                      setTimings({});
+                    }}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0">
+                      <Briefcase className="w-5.5 h-5.5" />
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-black text-brand-dark leading-tight mb-1">{tField('طالبة دراسات عليا / موظفة جامعة', 'Postgraduate Student / SQU Staff')}</h5>
+                      <span className="text-[0.65rem] text-gray-400 font-bold">Postgrad and University Employees</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Step 2: Undergraduate priority senior option */}
+            {!isTeacher && studentType === 'undergrad' && (
+              <div className="p-4.5 bg-slate-50 border border-gray-150 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in animate-duration-300">
+                <div className="text-start">
+                  <h5 className="text-xs sm:text-sm font-black text-brand-dark leading-snug mb-1">
+                    {tField('هل هذا الفصل الدراسي هو الفصل الأخير لكِ بجامعة السلطان قابوس؟', 'Is this current semester your final semester at SQU?')}
+                  </h5>
+                  <p className="text-[0.7rem] text-rose-500 font-bold mb-0">
+                    {tField('طالبات الخريجات لهن الأولوية القصوى في حجز مقاعد الحلقات للتسريع والتمكين.', 'Graduating seniors get highest placement priority in circles.')}
+                  </p>
+                </div>
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <button 
+                    type="button"
+                    onClick={() => setIsLastSemester(true)}
+                    className={`flex-1 sm:flex-initial px-4 py-2 border-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                      isLastSemester === true 
+                        ? 'bg-brand-primary text-white border-brand-primary font-black' 
+                        : 'bg-white border-gray-150 text-gray-400 hover:bg-gray-50'
+                    }`}
+                  >
+                    {tField('نعم، خريجة', 'Yes, Graduating')}
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setIsLastSemester(false)}
+                    className={`flex-1 sm:flex-initial px-4 py-2 border-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                      isLastSemester === false 
+                        ? 'bg-brand-primary text-white border-brand-primary font-black' 
+                        : 'bg-white border-gray-150 text-gray-400 hover:bg-gray-50'
+                    }`}
+                  >
+                    {tField('لا، مستمرة', 'No, Continuing')}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Timetable Interactive Grid */}
+            <div className="space-y-3.5 select-none">
+              <div>
+                <label className="text-xs sm:text-sm font-black text-brand-dark flex flex-wrap items-center gap-1.5">
+                  <span>٢.</span>
+                  <span>{tField('جدول رصد وتحديد التوقيتات والأوقات المناسبة للحلقة:', '2. Preferred Weekly Timetable Calendar Grid:')}</span>
+                </label>
+                <span className="text-[0.7rem] text-gray-400 font-bold block mt-0.5 leading-relaxed">
+                  {isTeacher ? (
+                    tField('حددي الخانات الزمنية المناسبة معكِ لإقامة السلسلة. انقري على الفراغات الزمنية لتفعيلها باللون البنفسجي.', 'Click directly on the empty time slots corresponding to your teaching schedule to toggle selection.')
+                  ) : (
+                    studentType === 'undergrad' 
+                      ? tField('انقري مباشرة على الفراغات الزمنية المواءمة لجدولك لبدء تفعيلها باللون البنفسجي.', 'Click directly on the empty time slots corresponding to your SQU calendar to toggle selection.')
+                      : tField('طالبة دراسات عليا: انقري للتنقل بين خيارات: نقرة أولى (💻 عن بعد) ➔ نقرة ثانية (🏫 حضوري) ➔ نقرة ثالثة (إلغاء).', 'Cycle mode: Check once (Online 💻) ➔ Click twice (In-Person 🏫 — Except early morning!) ➔ Click a third time to clear.')
+                  )}
+                </span>
+              </div>
+
+              {/* Grid implementation */}
+              <div className="overflow-x-auto border border-gray-150 rounded-2xl select-none">
+                <table className="w-full text-start text-xs border-collapse min-w-[750px]">
+                  <thead>
+                    <tr className="bg-slate-50/80 border-b border-gray-150 text-brand-dark text-[0.7rem] font-black uppercase text-center select-none font-sans">
+                      <th className="py-3 px-4 text-start font-serif text-[0.75rem]">{tField('اليوم الدراسي', 'SQU Cohort Day')}</th>
+                      {activeSlots.map(s => (
+                        <th key={s.key} className="py-3 px-1.5 border-s border-gray-150 text-center font-black">
+                          {isAr ? s.ar : s.en}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-150 select-none">
+                    {activeDays.map(day => (
+                      <tr key={day.key} className="hover:bg-slate-50/40 transition-colors">
+                        <td className="py-3 px-4 font-black text-brand-dark bg-slate-50/20 text-start w-[110px] sm:w-[130px]">
+                          {isAr ? day.ar : day.en}
+                        </td>
+                        {activeSlots.map(slot => {
+                          const key = `${day.key}_${slot.key}`;
+                          const val = timings[key];
+
+                          let cellStyle = "bg-white text-gray-400 hover:bg-brand-primary/[0.02]";
+                          let content = "";
+
+                          if (isTeacher || studentType === 'undergrad') {
+                            if (val === 'selected') {
+                              cellStyle = "bg-brand-primary/10 border-brand-primary text-brand-primary font-black scale-[0.98]";
+                              content = isAr ? '✓ متاح' : '✓ Selected';
+                            } else {
+                              content = "-";
+                            }
+                          } else {
+                            // Postgraduate student cycles
+                            if (val === 'online') {
+                              cellStyle = "bg-sky-50 text-sky-700 font-extrabold scale-[0.98]";
+                              content = tField('💻 عن بعد', '💻 Online');
+                            } else if (val === 'person') {
+                              cellStyle = "bg-amber-50 text-amber-700 font-extrabold scale-[0.98]";
+                              content = tField('🏫 حضوري', '🏫 In-person');
+                            } else {
+                              content = "-";
+                            }
+                          }
+
+                          return (
+                            <td 
+                              key={slot.key}
+                              onClick={() => handleSlotClick(day.key, slot.key)}
+                              className={`py-3.5 px-2 text-center border-s border-gray-150 cursor-pointer select-none transition-all duration-150 text-[0.67rem] font-bold ${cellStyle}`}
+                            >
+                              <div className="flex items-center justify-center min-h-[22px]">
+                                {content}
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Legend Display */}
+              {!isTeacher && studentType === 'postgrad' && (
+                <div className="flex flex-wrap gap-4 items-center justify-center sm:justify-start pt-2 px-1 text-[0.7rem] font-extrabold select-none">
+                  <div className="flex items-center gap-1">
+                    <span className="w-3.5 h-3.5 rounded bg-sky-50 border border-sky-300 inline-block flex-shrink-0" />
+                    <span className="text-sky-700">{tField('عن بعد 💻', 'Online 💻')}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-3.5 h-3.5 rounded bg-amber-50 border border-amber-300 inline-block flex-shrink-0" />
+                    <span className="text-amber-700">{tField('حضوري 🏫', 'In-Person 🏫')}</span>
+                  </div>
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <span className="w-3.5 h-3.5 rounded bg-white border border-gray-200 inline-block flex-shrink-0" />
+                    <span className="text-gray-405">{tField('غير متاح', 'Not selected')}</span>
+                  </div>
+                  <div className="text-rose-600 font-black flex items-center gap-1 ml-auto">
+                    <span>⚠️</span>
+                    <span>{tField('ملاحظة: المواعيد الفجرية تكون حصرياً (عن بعد) فقط.', 'Note: Early morning slots are online-only.')}</span>
+                  </div>
+                </div>
+              )}
+
+
+            </div>
+
+            {/* Steps & Remarks */}
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-black text-brand-dark flex items-center gap-1.5 block">
+                <span>٣.</span>
+                <span>{tField('ملاحظات المنسق وتطلعات التسميع (ملاحظات):', '3. Personal Remarks & Course Desires (Notes):')}</span>
+              </label>
+              <textarea 
+                rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder={isTeacher ? (
+                  tField(
+                    'اكتبي أي توجيهات تخصصية بشأن الحد الأدنى لمستوى الطالبات المطلوب بحلقتك، أو تفضيل تلاوات معينة...',
+                    'e.g. Note any pedagogical styles, preferred SQU student cohort groups, or level constraints...'
+                  )
+                ) : (
+                  tField(
+                    'مثال: أفضّل التسميع الفردي، أو لدي رغبة بمراجعة أحكام ومخارج التجويد الأساسية أو التلاوة السريعة للإجازات...', 
+                    'e.g. Any specific learning style preferences, previous memorization achievements, or Tajweed reviews...'
+                  )
+                )}
+                className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-2xl px-4 py-3 text-xs sm:text-sm font-bold placeholder-gray-300"
+              />
+            </div>
+
+            <div className="pt-3">
+              <button 
+                type="submit"
+                className="w-full px-8 py-4 bg-brand-primary hover:bg-brand-accent text-white rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-brand-primary/10 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
+              >
+                <span>🚀</span>
+                <span>{isTeacher ? tField('إرسال رغبات أوقات التدريس بالحلقة', 'Submit Teaching Schedule preferences') : tField('إلقاء طلب التسجيل وحجز المواعيد', 'Submit Recital Enrollment Schedule')}</span>
+              </button>
+            </div>
+
+          </form>
+        </div>
+      )}
+
     </div>
   );
 }

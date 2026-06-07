@@ -11,7 +11,7 @@ import {
 export const initialAnnouncements: Announcement[] = [
   { 
     id: '1', 
-    text: 'نرحب بجميع الطالبات الجدد في نادي إتقان للفصل الدراسي الحالي.', 
+    text: 'نرحب بجميع الطالبات الجدد في نادي مسك للفصل الدراسي الحالي.', 
     type: 'text', 
     date: '2026-06-04', 
     author: 'الإدارة' 
@@ -164,7 +164,7 @@ export const initialAllTeachers: GlobalTeacher[] = [
 
 export const translations = {
   en: {
-    title: "Itqan Recitation Club",
+    title: "Misk",
     login: "Sign In",
     register: "Register Now",
     welcomeBack: "Welcome Back",
@@ -172,7 +172,7 @@ export const translations = {
     email: "Email Address",
     password: "Password",
     about: "About",
-    heroTitle: "Itqan Recitation Club",
+    heroTitle: "Misk",
     heroSubtitle: "Indeed, those who recite the Book of Allah and establish prayer and spend out of what We have provided them, secretly and publicly, expect a profit that will never perish.",
     getStarted: "Get Started",
     contact: "Contact Us",
@@ -302,10 +302,10 @@ export const translations = {
       "Complete assigned Quranic recitation tasks on time.",
       "Participate in club activities and events actively."
     ],
-    aboutContent: "Itqan Club for Quranic Recitation Excellence is one of the student clubs at Sultan Qaboos University, supervised by the Deanship of Student Affairs. It aims to prepare a generation that recites the Quran efficiently and masters its rules through specialized educational programs.",
+    aboutContent: "Misk is one of the student clubs at Sultan Qaboos University, supervised by the Deanship of Student Affairs. It aims to prepare a generation that recites the Quran efficiently and masters its rules through specialized educational programs.",
   },
   ar: {
-    title: "نادي إتقان التلاوة",
+    title: "مسك",
     login: "تسجيل الدخول",
     register: "سجل الآن",
     welcomeBack: "مرحباً بك مجدداً",
@@ -313,7 +313,7 @@ export const translations = {
     email: "البريد الإلكتروني",
     password: "كلمة المرور",
     about: "حول",
-    heroTitle: "نادي إتقان التلاوة",
+    heroTitle: "مسك",
     heroSubtitle: "إِنَّ الَّذِينَ يَتْلُونَ كِتَابَ اللَّهِ وَأَقَامُوا الصَّلَاةَ وَأَنفَقُوا مِمَّا رَزَقْنَاهُمْ سِرًّا وَعَلَانِيَةً يَرْجُونَ تِجَارَةً لَّن تَبُورَ",
     getStarted: "ابدأ الآن",
     contact: "اتصل بنا",
@@ -443,6 +443,6 @@ export const translations = {
       "إتمام مهام التلاوة المقررة في الوقت المحدد.",
       "المشاركة الفعالة في أنشطة النادي المختلفة والبرامج التعليمية."
     ],
-    aboutContent: "نادي إتقان التميز في التلاوة هو أحد الأندية الطلابية بجامعة السلطان قابوس، تشرف عليه عمادة شؤون الطلاب. يهدف إلى إعداد جيل يتلو القرآن الكريم بإتقان ويتقن أحكامه من خلال برامج تعليمية متخصصة.",
+    aboutContent: "مسك هو أحد الأندية الطلابية بجامعة السلطان قابوس، تشرف عليه عمادة شؤون الطلاب. يهدف إلى إعداد جيل يتلو القرآن الكريم بإتقان ويتقن أحكامه من خلال برامج تعليمية متخصصة.",
   }
 };

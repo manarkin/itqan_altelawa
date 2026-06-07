@@ -1,6 +1,6 @@
 {
-  "name": "نادي إتقان التلاوة",
-  "description": "نظام إدارة نادي إتقان التلاوة للطلاب والمعلمين للتسجيل في برامج التلاوة القرآنية.",
+  "name": "مسك",
+  "description": "نظام إدارة مسك للتلاوة للطلاب والمعلمين للتسجيل في برامج التلاوة القرآنية.",
   "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

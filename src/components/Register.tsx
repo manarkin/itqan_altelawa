@@ -9,17 +9,20 @@ import {
   ChevronRight,
   Sparkles
 } from 'lucide-react';
+import MaskedPasswordInput from './MaskedPasswordInput';
 
 interface RegisterProps {
   navigate: (view: string) => void;
   lang: 'ar' | 'en';
   t: () => any;
+  setUser?: (user: any) => void;
 }
 
 export default function Register({
   navigate,
   lang,
-  t
+  t,
+  setUser
 }: RegisterProps) {
   const [regRole, setRegRole] = useState<'student' | 'teacher'>('student');
   const [regStudentType, setRegStudentType] = useState<'undergrad' | 'postgrad'>('undergrad');
@@ -29,6 +32,25 @@ export default function Register({
   // Custom attachment names to simulate real file drops
   const [cardPicName, setCardPicName] = useState('');
   const [voiceFileName, setVoiceFileName] = useState('');
+
+  // Wired input field states
+  const [studentFirstName, setStudentFirstName] = useState('');
+  const [studentFatherName, setStudentFatherName] = useState('');
+  const [studentLastName, setStudentLastName] = useState('');
+  const [studentEmail, setStudentEmail] = useState('');
+  const [studentPhone, setStudentPhone] = useState('');
+  const [studentPassword, setStudentPassword] = useState('');
+  const [studentConfirmPassword, setStudentConfirmPassword] = useState('');
+  const [studentId, setStudentId] = useState('');
+  const [studentCohort, setStudentCohort] = useState('');
+
+  const [teacherFirstName, setTeacherFirstName] = useState('');
+  const [teacherLastName, setTeacherLastName] = useState('');
+  const [teacherEmail, setTeacherEmail] = useState('');
+  const [teacherPhone, setTeacherPhone] = useState('');
+  const [teacherPassword, setTeacherPassword] = useState('');
+  const [teacherConfirmPassword, setTeacherConfirmPassword] = useState('');
+  const [teacherCertifications, setTeacherCertifications] = useState('');
 
   const isAr = lang === 'ar';
   const tField = (ar: string, en: string) => isAr ? ar : en;
@@ -71,6 +93,57 @@ export default function Register({
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (regRole === 'student') {
+      if (studentPassword !== studentConfirmPassword) {
+        alert(tField('كلمتا المرور غير متطابقتين!', 'Passwords do not match!'));
+        return;
+      }
+
+      const newUser = {
+        firstName: studentFirstName,
+        lastName: studentLastName,
+        role: 'STUDENT',
+        email: studentEmail,
+        isEnrolled: false,
+        phone: studentPhone,
+        college: selectedCollege,
+        cohort: studentCohort || '2023',
+        level: 'مبتدئة',
+        password: studentPassword,
+        avatar: 'https://picsum.photos/seed/student_new/200/200'
+      };
+
+      localStorage.setItem('registered_user_' + studentEmail.toLowerCase(), JSON.stringify(newUser));
+      if (setUser) {
+        setUser(newUser);
+      }
+    } else {
+      if (teacherPassword !== teacherConfirmPassword) {
+        alert(tField('كلمتا المرور غير متطابقتين!', 'Passwords do not match!'));
+        return;
+      }
+
+      const newUser = {
+        firstName: teacherFirstName,
+        lastName: teacherLastName,
+        role: 'TEACHER',
+        email: teacherEmail,
+        isEnrolled: false,
+        phone: teacherPhone,
+        college: 'Education',
+        cohort: '',
+        level: 'مجازة',
+        password: teacherPassword,
+        avatar: 'https://picsum.photos/seed/teacher_new/200/200'
+      };
+
+      localStorage.setItem('registered_user_' + teacherEmail.toLowerCase(), JSON.stringify(newUser));
+      if (setUser) {
+        setUser(newUser);
+      }
+    }
+
     navigate('success');
   };
 
@@ -102,7 +175,7 @@ export default function Register({
               onClick={() => setRegRole('student')}
             >
               <GraduationCap className="w-4.5 h-4.5" />
-              <span>{tField('طالبة مقيدة بنادي إتقان', 'Student')}</span>
+              <span>{tField('طالبة مقيدة بنادي مسك', 'Student')}</span>
             </button>
 
             <button 
@@ -176,6 +249,8 @@ export default function Register({
                   </label>
                   <input 
                     type="text" 
+                    value={studentFirstName}
+                    onChange={(e) => setStudentFirstName(e.target.value)}
                     className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
                     required 
                     placeholder={tField('مثال: مريم', 'e.g. Maryam')}
@@ -187,6 +262,8 @@ export default function Register({
                   </label>
                   <input 
                     type="text" 
+                    value={studentFatherName}
+                    onChange={(e) => setStudentFatherName(e.target.value)}
                     className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
                     required 
                     placeholder={tField('مثال: يوسف', 'e.g. Yousuf')}
@@ -198,6 +275,8 @@ export default function Register({
                   </label>
                   <input 
                     type="text" 
+                    value={studentLastName}
+                    onChange={(e) => setStudentLastName(e.target.value)}
                     className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
                     required 
                     placeholder={tField('مثال: الهنائية', 'e.g. Al-Hinai')}
@@ -213,6 +292,8 @@ export default function Register({
                   </label>
                   <input 
                     type="email" 
+                    value={studentEmail}
+                    onChange={(e) => setStudentEmail(e.target.value)}
                     className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
                     required 
                     placeholder="s123456@student.squ.edu.om"
@@ -224,9 +305,40 @@ export default function Register({
                   </label>
                   <input 
                     type="tel" 
+                    value={studentPhone}
+                    onChange={(e) => setStudentPhone(e.target.value)}
                     className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
                     required 
                     placeholder="+968 9123 4567"
+                  />
+                </div>
+              </div>
+
+              {/* Two Password Fields with mask helper */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-black text-gray-400 block mb-1">
+                    {tField('كلمة المرور', 'Password')}
+                  </label>
+                  <MaskedPasswordInput 
+                    value={studentPassword}
+                    onChange={setStudentPassword}
+                    className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
+                    required 
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-black text-gray-400 block mb-1">
+                    {tField('تأكيد كلمة المرور', 'Confirm Password')}
+                  </label>
+                  <MaskedPasswordInput 
+                    value={studentConfirmPassword}
+                    onChange={setStudentConfirmPassword}
+                    className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
+                    required 
+                    placeholder="••••••••"
                   />
                 </div>
               </div>
@@ -239,6 +351,8 @@ export default function Register({
                   </label>
                   <input 
                     type="text" 
+                    value={studentId}
+                    onChange={(e) => setStudentId(e.target.value)}
                     className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
                     required 
                     placeholder={regStudentType === 'undergrad' ? '123456' : '102934'}
@@ -288,6 +402,8 @@ export default function Register({
                   </label>
                   <input 
                     type="number" 
+                    value={studentCohort}
+                    onChange={(e) => setStudentCohort(e.target.value)}
                     className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold font-mono text-ltr" 
                     required 
                     placeholder="e.g. 2023"
@@ -348,7 +464,7 @@ export default function Register({
               {/* Yes no: First time in club? */}
               <div className="space-y-2 pt-2 text-start select-none">
                 <label className="text-xs font-black text-gray-400 block font-bold">
-                  {tField('هل هذه هي أول مرة تلتحقين فيها بنادي إتقان؟', 'Is this your first time in Itqan Club?')}
+                  {tField('هل هذه هي أول مرة تلتحقين فيها بنادي مسك؟', 'Is this your first time in Misk Club?')}
                 </label>
                 <div className="flex gap-3">
                   <button 
@@ -429,7 +545,7 @@ export default function Register({
                   required 
                 />
                 <label htmlFor="regTermsCheck" className="text-xs sm:text-sm font-bold text-gray-500 cursor-pointer select-none leading-relaxed">
-                  {tField('أقر بموافقتي التامة على شروط الالتحاق والالتزام بحضور التلاوات والواحبات الفقهية المقررة بنادي إتقان بجامعة السلطان قابوس.', 'Do you agree to the terms of enrollment and abide by the club rules?')}
+                  {tField('أقر بموافقتي التامة على شروط الالتحاق والالتزام بحضور التلاوات والواحبات الفقهية المقررة بنادي مسك بجامعة السلطان قابوس.', 'Do you agree to the terms of enrollment and abide by the club rules?')}
                 </label>
               </div>
 
@@ -453,6 +569,8 @@ export default function Register({
                 <label className="text-xs font-black text-gray-400 block mb-1">{tField('الاسم الأول', 'First Name')}</label>
                 <input 
                   type="text" 
+                  value={teacherFirstName}
+                  onChange={(e) => setTeacherFirstName(e.target.value)}
                   className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
                   required 
                   placeholder={tField('مثال: مريم', 'e.g. Maryam')}
@@ -462,6 +580,8 @@ export default function Register({
                 <label className="text-xs font-black text-gray-400 block mb-1">{tField('اسم العائلة (اللقب)', 'Family Name')}</label>
                 <input 
                   type="text" 
+                  value={teacherLastName}
+                  onChange={(e) => setTeacherLastName(e.target.value)}
                   className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
                   required 
                   placeholder={tField('مثال: الهنائية', 'e.g. Al-Hinai')}
@@ -474,6 +594,8 @@ export default function Register({
                 <label className="text-xs font-black text-gray-400 block mb-1">{tField('البريد الإلكتروني', 'Email Address')}</label>
                 <input 
                   type="email" 
+                  value={teacherEmail}
+                  onChange={(e) => setTeacherEmail(e.target.value)}
                   className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
                   required 
                   placeholder="teacher@recitation.club"
@@ -483,6 +605,8 @@ export default function Register({
                 <label className="text-xs font-black text-gray-400 block mb-1">{tField('رقم الهاتف والتواصل', 'Phone Number')}</label>
                 <input 
                   type="tel" 
+                  value={teacherPhone}
+                  onChange={(e) => setTeacherPhone(e.target.value)}
                   className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
                   required 
                   placeholder="+968 9876 5432"
@@ -490,9 +614,40 @@ export default function Register({
               </div>
             </div>
 
+            {/* Two Password Fields with mask helper */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-black text-gray-400 block mb-1">
+                  {tField('كلمة المرور', 'Password')}
+                </label>
+                <MaskedPasswordInput 
+                  value={teacherPassword}
+                  onChange={setTeacherPassword}
+                  className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
+                  required 
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-black text-gray-400 block mb-1">
+                  {tField('تأكيد كلمة المرور', 'Confirm Password')}
+                </label>
+                <MaskedPasswordInput 
+                  value={teacherConfirmPassword}
+                  onChange={setTeacherConfirmPassword}
+                  className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
+                  required 
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="text-xs font-black text-gray-400 block mb-1">{tField('الشهادات الحاصلة عليها والإجازات السابقة بالتفصيل:', 'Certificates & Previous Ijaza:')}</label>
               <textarea 
+                value={teacherCertifications}
+                onChange={(e) => setTeacherCertifications(e.target.value)}
                 className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl p-4 text-sm font-bold" 
                 rows={3} 
                 required 

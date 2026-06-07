@@ -40,45 +40,7 @@ export default function Navbar({
           </span>
         </div>
 
-        {/* Game HUD for Student in Header */}
-        {user && user.role === 'STUDENT' && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-primary/5 border border-brand-primary/15 shadow-xs select-none">
-            {/* Coins */}
-            <div 
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-gray-100 cursor-pointer hover:scale-105 active:scale-95 transition-all duration-200" 
-              title={lang === 'ar' ? 'الرصيد المالي الذهبي' : 'Gold Coins Balance'}
-            >
-              <span className="text-lg">🪙</span>
-              <span className="font-bold text-gray-800 text-sm font-mono">{user.money}</span>
-            </div>
 
-            {/* Excused Absences */}
-            <div 
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-gray-100 cursor-pointer hover:scale-105 active:scale-95 transition-all duration-200"
-              title={lang === 'ar' ? 'غياب بعذر' : 'Excused Absences'}
-            >
-              <span className="w-5.5 h-5.5 rounded-full flex items-center justify-center bg-amber-500 text-white font-black text-xs font-mono shadow-sm">
-                {user.absencesExcused}
-              </span>
-              <span className="text-xs font-bold text-gray-500 hidden sm:inline">
-                {lang === 'ar' ? 'بعذر' : 'Exc.'}
-              </span>
-            </div>
-
-            {/* Unexcused Absences */}
-            <div 
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-gray-100 cursor-pointer hover:scale-105 active:scale-95 transition-all duration-200"
-              title={lang === 'ar' ? 'غياب بدون عذر' : 'Unexcused Absences'}
-            >
-              <span className="w-5.5 h-5.5 rounded-full flex items-center justify-center bg-red-600 text-white font-black text-xs font-mono shadow-sm">
-                {user.absencesUnexcused}
-              </span>
-              <span className="text-xs font-bold text-gray-500 hidden sm:inline">
-                {lang === 'ar' ? 'غياب' : 'Abs.'}
-              </span>
-            </div>
-          </div>
-        )}
 
         {/* Desktop Navigation */}
         <div className="hidden lg:flex items-center gap-6">
