@@ -70,6 +70,153 @@ export default function App() {
 
   const [showExamResults, setShowExamResults] = useState(false);
 
+  // Dynamic user data lists for admin and register coordination
+  const [allStudents, setAllStudents] = useState<any[]>(() => {
+    const cached = localStorage.getItem('itqan_all_students_v3');
+    if (cached) return JSON.parse(cached);
+    return [
+      {
+        firstName: 'أمل',
+        fatherName: 'سليمان',
+        grandfatherName: 'سعيد',
+        lastName: 'الفارسية',
+        role: 'STUDENT',
+        phone: '96877665544',
+        email: 'amal.farsi@student.squ.edu.om',
+        studentId: 'SQU983742',
+        level: 'متقدمة',
+        college: 'Science',
+        cohort: '2022',
+        cardPicName: 'student_id_amal.jpg',
+        voiceFileName: 'recitation_amal.mp3',
+        approved: false,
+        isNew: true,
+        enrollmentDetails: {
+          timings: {
+            "Sunday_4:15-5:30": "selected",
+            "Tuesday_4:15-5:30": "selected"
+          }
+        }
+      },
+      {
+        firstName: 'زكية',
+        fatherName: 'خلفان',
+        grandfatherName: 'محمد',
+        lastName: 'الهاشمية',
+        role: 'STUDENT',
+        phone: '96811223344',
+        email: 'zakia.hashmi@student.squ.edu.om',
+        studentId: 'SQU948211',
+        level: 'مبتدئة',
+        college: 'Arts',
+        cohort: '2023',
+        cardPicName: 'student_id_zakia.jpg',
+        voiceFileName: 'recitation_zakia.mp3',
+        approved: false,
+        isNew: true,
+        enrollmentDetails: {
+          timings: {
+            "Monday_10:00-11:15": "selected",
+            "Wednesday_10:00-11:15": "selected"
+          }
+        }
+      },
+      {
+        firstName: 'بسمة',
+        fatherName: 'حمد',
+        grandfatherName: 'علي',
+        lastName: 'الراشدية',
+        role: 'STUDENT',
+        phone: '96855443322',
+        email: 'basma.rashdi@student.squ.edu.om',
+        studentId: 'SQU951034',
+        level: 'تمهيدية',
+        college: 'Engineering',
+        cohort: '2021',
+        cardPicName: 'student_id_basma.jpg',
+        voiceFileName: 'recitation_basma.mp3',
+        approved: false,
+        isNew: true,
+        enrollmentDetails: {
+          timings: {
+            "Sunday_4:15-5:30": "selected",
+            "Tuesday_4:15-5:30": "selected"
+          }
+        }
+      },
+      {
+        firstName: 'فاطمة',
+        fatherName: 'عبدالله',
+        grandfatherName: 'أحمد',
+        lastName: 'العلوية',
+        role: 'STUDENT',
+        phone: '96899887766',
+        email: 'fatima.alwi@student.squ.edu.om',
+        studentId: 'SQU923847',
+        level: 'غير مصنفة',
+        college: 'Medicine',
+        cohort: '2024',
+        cardPicName: 'student_id_fatima.jpg',
+        voiceFileName: 'recitation_fatima.mp3',
+        approved: false,
+        isNew: true,
+        enrollmentDetails: {
+          timings: {
+            "Monday_10:00-11:15": "selected",
+            "Wednesday_10:00-11:15": "selected"
+          }
+        }
+      }
+    ];
+  });
+
+  const [allTeachers, setAllTeachers] = useState<any[]>(() => {
+    const cached = localStorage.getItem('itqan_all_teachers_v3');
+    if (cached) return JSON.parse(cached);
+    return [
+      {
+        firstName: 'مريم',
+        fatherName: 'بدر',
+        grandfatherName: 'صالح',
+        lastName: 'الهنائية',
+        role: 'TEACHER',
+        phone: '96812345678',
+        email: 'maryam.hinai@recitation.club',
+        employeeId: 'EMP1003',
+        level: 'مجازة',
+        college: 'Education',
+        approved: false,
+        isNew: false,
+        enrollmentDetails: {
+          timings: {
+            "Sunday_4:15-5:30": "selected",
+            "Tuesday_4:15-5:30": "selected"
+          }
+        }
+      },
+      {
+        firstName: 'سارة',
+        fatherName: 'خميس',
+        grandfatherName: 'جمعة',
+        lastName: 'البلوشية',
+        role: 'TEACHER',
+        phone: '96887654321',
+        email: 'sara.balushi@recitation.club',
+        employeeId: 'EMP1004',
+        level: 'طالبة اقراء',
+        college: 'Arts',
+        approved: false,
+        isNew: false,
+        enrollmentDetails: {
+          timings: {
+            "Monday_10:00-11:15": "selected",
+            "Wednesday_10:00-11:15": "selected"
+          }
+        }
+      }
+    ];
+  });
+
   // --- Effects for Storage Persistence & RTL toggling ---
   useEffect(() => {
     localStorage.setItem('itqan_lang', lang);
@@ -104,6 +251,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('itqan_stats', JSON.stringify(adminStats));
   }, [adminStats]);
+
+  useEffect(() => {
+    localStorage.setItem('itqan_all_students_v3', JSON.stringify(allStudents));
+  }, [allStudents]);
+
+  useEffect(() => {
+    localStorage.setItem('itqan_all_teachers_v3', JSON.stringify(allTeachers));
+  }, [allTeachers]);
 
 
   // --- Helper Translation fetcher ---
@@ -259,6 +414,8 @@ export default function App() {
             lang={lang} 
             t={t} 
             setUser={setUser}
+            setAllStudents={setAllStudents}
+            setAllTeachers={setAllTeachers}
           />
         );
       case 'mysession':
@@ -288,14 +445,17 @@ export default function App() {
         return (
           <ControlPanel 
             user={user}
+            setUser={setUser}
             sessions={sessions}
             setSessions={setSessions}
             sessionRequests={sessionRequests}
             setSessionRequests={setSessionRequests}
             adminStats={adminStats}
             setAdminStats={setAdminStats}
-            allStudents={initialAllStudents}
-            allTeachers={initialAllTeachers}
+            allStudents={allStudents}
+            allTeachers={allTeachers}
+            setAllStudents={setAllStudents}
+            setAllTeachers={setAllTeachers}
             lang={lang}
             t={t}
           />

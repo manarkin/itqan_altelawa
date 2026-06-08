@@ -16,13 +16,17 @@ interface RegisterProps {
   lang: 'ar' | 'en';
   t: () => any;
   setUser?: (user: any) => void;
+  setAllStudents?: React.Dispatch<React.SetStateAction<any[]>>;
+  setAllTeachers?: React.Dispatch<React.SetStateAction<any[]>>;
 }
 
 export default function Register({
   navigate,
   lang,
   t,
-  setUser
+  setUser,
+  setAllStudents,
+  setAllTeachers
 }: RegisterProps) {
   const [regRole, setRegRole] = useState<'student' | 'teacher'>('student');
   const [regStudentType, setRegStudentType] = useState<'undergrad' | 'postgrad'>('undergrad');
@@ -56,6 +60,7 @@ export default function Register({
   const [teacherPassword, setTeacherPassword] = useState('');
   const [teacherConfirmPassword, setTeacherConfirmPassword] = useState('');
   const [teacherCertifications, setTeacherCertifications] = useState('');
+  const [teacherId, setTeacherId] = useState('');
 
   const isAr = lang === 'ar';
   const tField = (ar: string, en: string) => isAr ? ar : en;
@@ -114,18 +119,26 @@ export default function Register({
         email: studentEmail,
         isEnrolled: false,
         phone: studentPhone,
-        college: selectedCollege,
+        college: selectedCollege || 'OTHER',
         cohort: studentCohort || '2023',
-        level: 'مبتدئة',
+        studentId: studentId || 'SQU' + Math.floor(1000 + Math.random() * 9000),
+        level: tField('غير مصنف', 'Not Categorized'),
         username: studentUsername,
         password: studentPassword,
-        avatar: 'https://picsum.photos/seed/student_new/200/200'
+        avatar: 'https://picsum.photos/seed/student_new/200/200',
+        cardPicName: cardPicName || 'student_id_upload.png',
+        voiceFileName: voiceFileName || (regFirstTime === 'yes' ? 'sample_voice.mp3' : ''),
+        approved: false, // starts as Not Checked
+        isNew: true
       };
 
       // Save both by email and by username
       localStorage.setItem('registered_user_' + studentEmail.toLowerCase(), JSON.stringify(newUser));
       if (studentUsername) {
         localStorage.setItem('registered_user_' + studentUsername.toLowerCase(), JSON.stringify(newUser));
+      }
+      if (setAllStudents) {
+        setAllStudents(prev => [...prev, newUser]);
       }
       if (setUser) {
         setUser(newUser);
@@ -147,16 +160,22 @@ export default function Register({
         phone: teacherPhone,
         college: 'Education',
         cohort: '',
+        employeeId: teacherId || 'EMP' + Math.floor(1000 + Math.random() * 9000),
         level: 'مجازة',
         username: teacherUsername,
         password: teacherPassword,
-        avatar: 'https://picsum.photos/seed/teacher_new/200/200'
+        avatar: 'https://picsum.photos/seed/teacher_new/200/200',
+        approved: false, // starts as Not Checked
+        isNew: true
       };
 
       // Save both by email and by username
       localStorage.setItem('registered_user_' + teacherEmail.toLowerCase(), JSON.stringify(newUser));
       if (teacherUsername) {
         localStorage.setItem('registered_user_' + teacherUsername.toLowerCase(), JSON.stringify(newUser));
+      }
+      if (setAllTeachers) {
+        setAllTeachers(prev => [...prev, newUser]);
       }
       if (setUser) {
         setUser(newUser);
@@ -666,7 +685,7 @@ export default function Register({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="text-xs font-black text-gray-400 block mb-1">{tField('البريد الإلكتروني', 'Email Address')}</label>
                 <input 
@@ -687,6 +706,17 @@ export default function Register({
                   className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
                   required 
                   placeholder="+968 9876 5432"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-black text-gray-400 block mb-1">{tField('الرقم الوظيفي للمعلمة', 'Employee ID / Work ID')}</label>
+                <input 
+                  type="text" 
+                  value={teacherId}
+                  onChange={(e) => setTeacherId(e.target.value)}
+                  className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
+                  required 
+                  placeholder="e.g. EMP1234"
                 />
               </div>
             </div>
