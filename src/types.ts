@@ -51,6 +51,7 @@ export interface SessionStudent {
   college?: string;
   cohort?: string;
   gifts?: Gift[];
+  enrollmentDetails?: any;
 }
 
 export interface PollOption {

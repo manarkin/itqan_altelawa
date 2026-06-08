@@ -31,6 +31,7 @@ import {
   normalizeLevel 
 } from './SessionAssigner';
 import { Session, SessionStudent } from '../../types';
+import { SQU_STUDENTS_CSV, parseSQUCSV, getSQURealTeachers } from './SQURealDataset';
 
 interface AssignmentWizardProps {
   sessions: Session[];
@@ -212,6 +213,31 @@ export default function AssignmentWizard({
         return prev + 1;
       });
     }, 180);
+  };
+
+  const handleGenerateSQURealData = () => {
+    const newStudents = parseSQUCSV(SQU_STUDENTS_CSV);
+    const newTeachers = getSQURealTeachers();
+
+    setAllStudents(newStudents);
+    setAllTeachers(newTeachers);
+
+    // Make sure timeslots in step 1 are suitable for SQU times
+    const updatedEnabledSlots = { ...enabledSlots };
+    // SQU slots are morning & afternoon mainly. Make sure they are enabled.
+    ALL_DAYS.forEach(day => {
+      ALL_SLOTS.forEach(slot => {
+        if (slot.key === '8:00-9:15' || slot.key === '10:00-11:15' || slot.key === '12:00-1:15' || slot.key === '2:15-3:30' || slot.key === '4:15-5:30') {
+          updatedEnabledSlots[`${day.key}_${slot.key}`] = true;
+        }
+      });
+    });
+    setEnabledSlots(updatedEnabledSlots);
+
+    alert(isAr 
+      ? `تم بنجاح تحميل قاعدة بيانات النادي بجامعة السلطان قابوس: تم إدراج ${newStudents.length} طالبة مسجلة بجدولها الدراسي الفعلي، ومطابقتها بـ ${newTeachers.length} معلمات متطوعات معتمدات بجداول ملائمة للربط!`
+      : `Successfully loaded SQU Quran Club Dataset: Registered ${newStudents.length} real students with their actual SQU academic timetables, and matched with ${newTeachers.length} dedicated female instructors with perfectly matching availability!`
+    );
   };
 
   // Seeder helper to generate 24 diverse students and 6 teachers for rich preview
@@ -737,6 +763,13 @@ export default function AssignmentWizard({
                   >
                     {tField('٣. سيناريو فجوة المهارات (Skill Mismatch)', '3. Skill Mismatch (Advanced students, freshman teachers)')}
                   </button>
+                  <button
+                    onClick={handleGenerateSQURealData}
+                    className="px-4 py-2 bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-black rounded-lg transition-all shadow-md cursor-pointer flex items-center gap-1.5 border border-emerald-500 hover:shadow-emerald-100"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 animate-bounce" />
+                    {tField('٤. قاعدة بيانات جامعة السلطان قابوس الفعلية (١٤١ طالبة + ١٥ معلمة)', '4. Actual SQU Dataset (141 Students + 15 Teachers)')}
+                  </button>
                 </div>
                 <div className="text-[10px] text-gray-400 font-bold block">
                   ({tField(`المسجلات حالياً بقاعدة البيانات: ${allStudents.length} طالبات، ${allTeachers.length} معلمات`, `Current database contains: ${allStudents.length} students, ${allTeachers.length} teachers`)})
@@ -1247,10 +1280,32 @@ export default function AssignmentWizard({
                                         key={std.id}
                                         className="p-2.5 rounded-xl border border-gray-100 bg-white flex items-center justify-between gap-1 shadow-xs hover:border-slate-200 transition-colors"
                                       >
-                                        <div className="space-y-0.5 truncate text-start">
-                                          <div className="font-extrabold text-brand-dark truncate">{std.name}</div>
-                                          <div className="text-[10px] text-gray-400 block truncate font-mono">
-                                            {std.college} | Coh {std.cohort} {isPostgrad ? '🎓' : '🏫'}
+                                        <div className="space-y-1 text-start w-full">
+                                          <div className="flex items-center gap-2">
+                                            <div className="font-extrabold text-brand-dark leading-snug">{std.name}</div>
+                                            <span className="bg-brand-primary/10 text-brand-primary text-[9px] px-1.5 py-0.5 rounded font-black">
+                                              {rawStd?.level || std.level || '---'}
+                                            </span>
+                                          </div>
+                                          <div className="text-[10px] text-gray-500 font-bold space-y-1">
+                                            <div>🎓 {std.college} | Coh {std.cohort} {isPostgrad ? '🎓' : '🏫'}</div>
+                                            <div className="font-mono text-gray-400">🆔 {rawStd?.studentId || std.id} | 📱 {rawStd?.phone || std.phone || '+968 XXXX XXXX'}</div>
+                                            {rawStd?.enrollmentDetails?.timings && (
+                                              <div className="flex flex-wrap gap-1 mt-1 font-sans">
+                                                {Object.keys(rawStd.enrollmentDetails.timings)
+                                                  .filter(k => rawStd.enrollmentDetails.timings[k] === 'selected')
+                                                  .map(k => {
+                                                    const parts = k.split('_');
+                                                    const dayAr: Record<string, string> = { Sunday: 'أحد', Monday: 'إثنين', Tuesday: 'ثلاثاء', Wednesday: 'أربعاء', Thursday: 'خميس' };
+                                                    const dayLabel = lang === 'ar' ? (dayAr[parts[0]] || parts[0]) : parts[0].substring(0, 3);
+                                                    return (
+                                                      <span key={k} className="bg-amber-50 text-amber-800 text-[9px] px-1 rounded border border-amber-200">
+                                                        {dayLabel} {parts[1]}
+                                                      </span>
+                                                    );
+                                                  })}
+                                              </div>
+                                            )}
                                           </div>
                                         </div>
 

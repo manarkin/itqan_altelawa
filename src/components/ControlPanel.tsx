@@ -23,9 +23,11 @@ import {
   Pause,
   Play,
   UserCheck,
-  Sparkles
+  Sparkles,
+  Monitor
 } from 'lucide-react';
 import AssignmentWizard from './AssignmentWizard/AssignmentWizard';
+import OnlineAssignmentWizard from './AssignmentWizard/OnlineAssignmentWizard';
 
 interface ControlPanelProps {
   user: User;
@@ -44,7 +46,7 @@ interface ControlPanelProps {
   t: () => any;
 }
 
-type AdminSubView = 'default' | 'students' | 'teachers' | 'sessions' | 'assignment-wizard';
+type AdminSubView = 'default' | 'students' | 'teachers' | 'sessions' | 'assignment-wizard' | 'online-assignment-wizard';
 
 export default function ControlPanel({
   user,
@@ -221,6 +223,21 @@ export default function ControlPanel({
   if (subView === 'assignment-wizard') {
     return (
       <AssignmentWizard 
+        sessions={sessions}
+        setSessions={setSessions}
+        allStudents={allStudents}
+        allTeachers={allTeachers}
+        setAllStudents={setAllStudents}
+        setAllTeachers={setAllTeachers}
+        lang={lang}
+        onBack={() => setSubView('default')}
+      />
+    );
+  }
+
+  if (subView === 'online-assignment-wizard') {
+    return (
+      <OnlineAssignmentWizard 
         sessions={sessions}
         setSessions={setSessions}
         allStudents={allStudents}
@@ -998,31 +1015,63 @@ export default function ControlPanel({
         {t().adminControlPanel}
       </h2>
 
-      {/* Automated Matching Banner */}
-      <div className="bg-gradient-to-r from-brand-primary to-brand-accent p-6 sm:p-8 rounded-3xl text-white shadow-lg mb-8 relative overflow-hidden select-none">
-        <div className="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
-          <BookOpen className="w-56 h-56" />
-        </div>
-        <div className="max-w-xl space-y-4 text-start relative">
-          <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider block w-fit">
-            {lang === 'ar' ? 'تحديثات الأتمتة المتقدمة' : 'Advanced Automations Update'}
-          </span>
-          <h3 className="text-xl sm:text-2xl font-black text-white leading-tight">
-            {lang === 'ar' ? 'الموزّع الذكي ومحرك جدولة الحلقات القرآني التلقائي' : 'Intelligent Quranic Session Matching & Assignment Engine'}
-          </h3>
-          <p className="text-white/80 text-xs sm:text-sm font-medium leading-relaxed">
-            {lang === 'ar' 
-              ? 'استخدمي الخوارزمية المقيدة لحساب توافق المواعيد ومستويات التلاوة وتصنيف الطالبات مع المعلمة المناسبة وتسكين ١٠٠٪ من المسجلات آلياً بدون تداخل!'
-              : 'Execute our constraint-satisfaction algorithm to analyze timing overlaps, levels compliance, and formats to generate optimized sessions in seconds!'}
-          </p>
+      {/* Dual Core Assignment Utility Hub */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 select-none">
+        
+        {/* Banner 1: In-person standard matching */}
+        <div className="bg-gradient-to-br from-brand-primary to-brand-accent p-6 sm:p-7 rounded-3xl text-white shadow-sm relative overflow-hidden flex flex-col justify-between space-y-4">
+          <div className="absolute -right-8 -bottom-8 opacity-10 pointer-events-none">
+            <BookOpen className="w-44 h-44" />
+          </div>
+          <div className="space-y-2 text-start relative">
+            <span className="bg-white/20 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider block w-fit">
+              {lang === 'ar' ? 'حضوري وتناسقي' : 'In-Person & Hybrid Engine'}
+            </span>
+            <h3 className="text-lg sm:text-xl font-black text-white leading-tight">
+              {lang === 'ar' ? 'معالج التوزيع التلقائي للحلقات (حضوري)' : 'Intelligent Offline Session Assignment Wizard'}
+            </h3>
+            <p className="text-white/85 text-xs font-bold leading-relaxed">
+              {lang === 'ar' 
+                ? 'استخدمي الخوارزمية المقيدة لتوزيع الطالبات في حلقات تلاوة فيزيائية داخل مقار جامعة السلطان قابوس بالتوافق مع المعلمات.'
+                : 'Deploy the main constraint heuristic to match SQU student timetables with available in-person teacher slots across campuses.'}
+            </p>
+          </div>
           <button
             onClick={() => setSubView('assignment-wizard')}
-            className="bg-white text-brand-primary hover:bg-slate-50 px-6 py-3 rounded-xl text-xs sm:text-sm font-black transition-all transform hover:-translate-y-0.5 shadow-md flex items-center gap-2 cursor-pointer"
+            className="bg-white text-brand-primary hover:bg-slate-50 px-5 py-3 rounded-xl text-xs font-black transition-all transform hover:-translate-y-0.5 shadow-xs flex items-center gap-2 cursor-pointer w-fit z-10"
           >
-            <Sparkles className="w-4 h-4 text-amber-500 animate-spin" />
-            <span>{lang === 'ar' ? 'بدء معالج التوزيع التلقائي للحلقات' : 'Launch Session Assignment Wizard'}</span>
+            <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-spin" />
+            <span>{lang === 'ar' ? 'تشغيل الموزع الحضوري ' : 'Launch In-Person Wizard'}</span>
           </button>
         </div>
+
+        {/* Banner 2: Online-only virtual matching */}
+        <div className="bg-gradient-to-br from-indigo-955 to-brand-primary p-6 sm:p-7 rounded-3xl text-white shadow-sm relative overflow-hidden flex flex-col justify-between space-y-4">
+          <div className="absolute -right-8 -bottom-8 opacity-15 pointer-events-none">
+            <Monitor className="w-44 h-44" />
+          </div>
+          <div className="space-y-2 text-start relative">
+            <span className="bg-emerald-500/25 border border-emerald-400/40 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider block w-fit text-emerald-300">
+              {lang === 'ar' ? 'افتراضي بالكامل أونلاين' : '100% Virtual Engine'}
+            </span>
+            <h3 className="text-lg sm:text-xl font-black text-white leading-tight">
+              {lang === 'ar' ? 'محرك تسكين الطالبات والمعلمات عبر الإنترنت (أونلاين)' : 'Virtual & Online Student Assignment Utility'}
+            </h3>
+            <p className="text-white/85 text-xs font-bold leading-relaxed">
+              {lang === 'ar' 
+                ? 'مخصص لتسكين طالبات الدراسات العليا والموظفات المقيدات بصيغة أونلاين وتجنيح غرف مايكروسوفت تيمز تلقائياً لكل حلقة.'
+                : 'Custom-tailored matching engine configured exclusively for online reciters and postgraduates with SQU Microsoft Teams link spawning.'}
+            </p>
+          </div>
+          <button
+            onClick={() => setSubView('online-assignment-wizard')}
+            className="bg-emerald-500 text-white hover:bg-emerald-600 px-5 py-3 rounded-xl text-xs font-black transition-all transform hover:-translate-y-0.5 shadow-xs flex items-center gap-2 cursor-pointer w-fit z-10"
+          >
+            <Monitor className="w-3.5 h-3.5 text-white" />
+            <span>{lang === 'ar' ? 'تشغيل الموزع الافتراضي أونلاين' : 'Launch Online Assigner'}</span>
+          </button>
+        </div>
+
       </div>
 
       {/* Grid Stats Overview */}
