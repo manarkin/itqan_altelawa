@@ -36,18 +36,23 @@ export default function Register({
   // Wired input field states
   const [studentFirstName, setStudentFirstName] = useState('');
   const [studentFatherName, setStudentFatherName] = useState('');
+  const [studentGrandfatherName, setStudentGrandfatherName] = useState('');
   const [studentLastName, setStudentLastName] = useState('');
   const [studentEmail, setStudentEmail] = useState('');
   const [studentPhone, setStudentPhone] = useState('');
+  const [studentUsername, setStudentUsername] = useState('');
   const [studentPassword, setStudentPassword] = useState('');
   const [studentConfirmPassword, setStudentConfirmPassword] = useState('');
   const [studentId, setStudentId] = useState('');
   const [studentCohort, setStudentCohort] = useState('');
 
   const [teacherFirstName, setTeacherFirstName] = useState('');
+  const [teacherFatherName, setTeacherFatherName] = useState('');
+  const [teacherGrandfatherName, setTeacherGrandfatherName] = useState('');
   const [teacherLastName, setTeacherLastName] = useState('');
   const [teacherEmail, setTeacherEmail] = useState('');
   const [teacherPhone, setTeacherPhone] = useState('');
+  const [teacherUsername, setTeacherUsername] = useState('');
   const [teacherPassword, setTeacherPassword] = useState('');
   const [teacherConfirmPassword, setTeacherConfirmPassword] = useState('');
   const [teacherCertifications, setTeacherCertifications] = useState('');
@@ -102,6 +107,8 @@ export default function Register({
 
       const newUser = {
         firstName: studentFirstName,
+        fatherName: studentFatherName,
+        grandfatherName: studentGrandfatherName,
         lastName: studentLastName,
         role: 'STUDENT',
         email: studentEmail,
@@ -110,11 +117,16 @@ export default function Register({
         college: selectedCollege,
         cohort: studentCohort || '2023',
         level: 'مبتدئة',
+        username: studentUsername,
         password: studentPassword,
         avatar: 'https://picsum.photos/seed/student_new/200/200'
       };
 
+      // Save both by email and by username
       localStorage.setItem('registered_user_' + studentEmail.toLowerCase(), JSON.stringify(newUser));
+      if (studentUsername) {
+        localStorage.setItem('registered_user_' + studentUsername.toLowerCase(), JSON.stringify(newUser));
+      }
       if (setUser) {
         setUser(newUser);
       }
@@ -126,6 +138,8 @@ export default function Register({
 
       const newUser = {
         firstName: teacherFirstName,
+        fatherName: teacherFatherName,
+        grandfatherName: teacherGrandfatherName,
         lastName: teacherLastName,
         role: 'TEACHER',
         email: teacherEmail,
@@ -134,11 +148,16 @@ export default function Register({
         college: 'Education',
         cohort: '',
         level: 'مجازة',
+        username: teacherUsername,
         password: teacherPassword,
         avatar: 'https://picsum.photos/seed/teacher_new/200/200'
       };
 
+      // Save both by email and by username
       localStorage.setItem('registered_user_' + teacherEmail.toLowerCase(), JSON.stringify(newUser));
+      if (teacherUsername) {
+        localStorage.setItem('registered_user_' + teacherUsername.toLowerCase(), JSON.stringify(newUser));
+      }
       if (setUser) {
         setUser(newUser);
       }
@@ -242,7 +261,7 @@ export default function Register({
             <form onSubmit={handleFormSubmit} className="space-y-5">
               
               {/* Name Details Fields row */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div>
                   <label className="text-xs font-black text-gray-400 block mb-1">
                     {tField('الاسم الأول', 'First Name')}
@@ -267,6 +286,19 @@ export default function Register({
                     className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
                     required 
                     placeholder={tField('مثال: يوسف', 'e.g. Yousuf')}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-black text-gray-400 block mb-1">
+                    {tField('اسم الجد', "Grandfather's Name")}
+                  </label>
+                  <input 
+                    type="text" 
+                    value={studentGrandfatherName}
+                    onChange={(e) => setStudentGrandfatherName(e.target.value)}
+                    className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
+                    required 
+                    placeholder={tField('مثال: أحمد', 'e.g. Ahmed')}
                   />
                 </div>
                 <div>
@@ -314,34 +346,7 @@ export default function Register({
                 </div>
               </div>
 
-              {/* Two Password Fields with mask helper */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-black text-gray-400 block mb-1">
-                    {tField('كلمة المرور', 'Password')}
-                  </label>
-                  <MaskedPasswordInput 
-                    value={studentPassword}
-                    onChange={setStudentPassword}
-                    className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
-                    required 
-                    placeholder="••••••••"
-                  />
-                </div>
 
-                <div>
-                  <label className="text-xs font-black text-gray-400 block mb-1">
-                    {tField('تأكيد كلمة المرور', 'Confirm Password')}
-                  </label>
-                  <MaskedPasswordInput 
-                    value={studentConfirmPassword}
-                    onChange={setStudentConfirmPassword}
-                    className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
-                    required 
-                    placeholder="••••••••"
-                  />
-                </div>
-              </div>
 
               {/* ID & College Choice row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -436,31 +441,6 @@ export default function Register({
                 </div>
               </div>
 
-              {/* Drag n drop Recitation Voice Audio file */}
-              <div>
-                <label className="text-xs font-black text-gray-400 block mb-1.5 font-bold">
-                  {tField('الملف الصوتي للتلاوة وتقييم المستوى (مرفق)', 'Recitation Sound Sample File')}
-                </label>
-                <div 
-                  className="p-6 rounded-2xl border-2 border-dashed border-brand-primary/30 text-center hover:bg-brand-neutral/20 transition-all select-none cursor-pointer flex flex-col items-center"
-                  onClick={() => document.getElementById('voiceFile')?.click()}
-                >
-                  <Mic className="text-brand-primary w-8 h-8 mb-2 animate-pulse" />
-                  <span className="text-xs font-extrabold text-brand-dark block mb-1">
-                    {voiceFileName || tField('انقري هنا لإرفاق ملف تلاوتك الصوتي الخاص بآيات قصيرة لتوزيعك على حركات الإتقان', 'Click here or drag recitation audio file to assess your placement level')}
-                  </span>
-                  <span className="text-[0.65rem] text-gray-400 font-bold block">MP3, M4A, WAV, AMR</span>
-                  <input 
-                    type="file" 
-                    id="voiceFile" 
-                    className="sr-only" 
-                    accept="audio/*"
-                    onChange={handleVoiceFileChange}
-                    required
-                  />
-                </div>
-              </div>
-
               {/* Yes no: First time in club? */}
               <div className="space-y-2 pt-2 text-start select-none">
                 <label className="text-xs font-black text-gray-400 block font-bold">
@@ -471,7 +451,7 @@ export default function Register({
                     type="button" 
                     className={`px-5 py-2.5 rounded-xl font-extrabold text-sm border cursor-pointer ${
                       regFirstTime === 'yes' 
-                        ? 'bg-brand-primary text-white border-brand-primary' 
+                        ? 'bg-brand-primary text-white border-brand-primary font-black' 
                         : 'bg-white text-gray-500 border-gray-150 hover:bg-gray-50'
                     }`}
                     onClick={() => setRegFirstTime('yes')}
@@ -482,7 +462,7 @@ export default function Register({
                     type="button" 
                     className={`px-5 py-2.5 rounded-xl font-extrabold text-sm border cursor-pointer ${
                       regFirstTime === 'no' 
-                        ? 'bg-brand-primary text-white border-brand-primary' 
+                        ? 'bg-brand-primary text-white border-brand-primary font-black' 
                         : 'bg-white text-gray-500 border-gray-150 hover:bg-gray-50'
                     }`}
                     onClick={() => setRegFirstTime('no')}
@@ -491,6 +471,33 @@ export default function Register({
                   </button>
                 </div>
               </div>
+
+              {/* Drag n drop Recitation Voice Audio file (conditional on first time) */}
+              {regFirstTime === 'yes' && (
+                <div className="animate-fade-in">
+                  <label className="text-xs font-black text-gray-400 block mb-1.5 font-bold">
+                    {tField('الملف الصوتي للتلاوة وتقييم المستوى (مرفق)', 'Recitation Sound Sample File')}
+                  </label>
+                  <div 
+                    className="p-6 rounded-2xl border-2 border-dashed border-brand-primary/30 text-center hover:bg-brand-neutral/20 transition-all select-none cursor-pointer flex flex-col items-center"
+                    onClick={() => document.getElementById('voiceFile')?.click()}
+                  >
+                    <Mic className="text-brand-primary w-8 h-8 mb-2 animate-pulse" />
+                    <span className="text-xs font-extrabold text-brand-dark block mb-1">
+                      {voiceFileName || tField('انقري هنا لإرفاق ملف تلاوتك الصوتي الخاص بآيات قصيرة لتوزيعك على حركات الإتقان', 'Click here or drag recitation audio file to assess your placement level')}
+                    </span>
+                    <span className="text-[0.65rem] text-gray-400 font-bold block">MP3, M4A, WAV, AMR</span>
+                    <input 
+                      type="file" 
+                      id="voiceFile" 
+                      className="sr-only" 
+                      accept="audio/*"
+                      onChange={handleVoiceFileChange}
+                      required
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* If "No", conditional details */}
               {regFirstTime === 'no' && (
@@ -536,6 +543,53 @@ export default function Register({
                 </div>
               )}
 
+              {/* Account Credentials Selection (Last step before agreement) */}
+              <div className="p-5 rounded-2xl bg-slate-50 border border-gray-150 space-y-4">
+                <h6 className="font-extrabold text-brand-dark text-sm border-b border-gray-150 pb-2 flex items-center gap-1.5">
+                  <span>🔒</span>
+                  <span>{tField('بيانات اعتماد الحساب والدخول', 'Account Security & Sign In Credentials')}</span>
+                </h6>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-xs font-black text-gray-400 block mb-1">
+                      {tField('اسم المستخدم المعين للتعريف', 'Account Username')}
+                    </label>
+                    <input 
+                      type="text" 
+                      value={studentUsername}
+                      onChange={(e) => setStudentUsername(e.target.value)}
+                      className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
+                      required 
+                      placeholder="e.g. maria_squ"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-black text-gray-400 block mb-1">
+                      {tField('كلمة المرور', 'Account Password')}
+                    </label>
+                    <MaskedPasswordInput 
+                      value={studentPassword}
+                      onChange={setStudentPassword}
+                      className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
+                      required 
+                      placeholder="••••••••"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-black text-gray-400 block mb-1">
+                      {tField('تأكيد كلمة المرور', 'Confirm Password')}
+                    </label>
+                    <MaskedPasswordInput 
+                      value={studentConfirmPassword}
+                      onChange={setStudentConfirmPassword}
+                      className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
+                      required 
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Conditions checkboxes */}
               <div className="flex items-start gap-2.5 pt-3">
                 <input 
@@ -564,7 +618,8 @@ export default function Register({
         ) : (
           /* Teacher Volunteer Registration form */
           <form onSubmit={handleFormSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Name Details Fields row */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <div>
                 <label className="text-xs font-black text-gray-400 block mb-1">{tField('الاسم الأول', 'First Name')}</label>
                 <input 
@@ -574,6 +629,28 @@ export default function Register({
                   className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
                   required 
                   placeholder={tField('مثال: مريم', 'e.g. Maryam')}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-black text-gray-400 block mb-1 font-bold">{tField('اسم الأب', "Father's Name")}</label>
+                <input 
+                  type="text" 
+                  value={teacherFatherName}
+                  onChange={(e) => setTeacherFatherName(e.target.value)}
+                  className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
+                  required 
+                  placeholder={tField('مثال: سليمان', 'e.g. Sulaiman')}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-black text-gray-400 block mb-1">{tField('اسم الجد', "Grandfather's Name")}</label>
+                <input 
+                  type="text" 
+                  value={teacherGrandfatherName}
+                  onChange={(e) => setTeacherGrandfatherName(e.target.value)}
+                  className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
+                  required 
+                  placeholder={tField('مثال: خليفة', 'e.g. Khalifa')}
                 />
               </div>
               <div>
@@ -614,35 +691,6 @@ export default function Register({
               </div>
             </div>
 
-            {/* Two Password Fields with mask helper */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-black text-gray-400 block mb-1">
-                  {tField('كلمة المرور', 'Password')}
-                </label>
-                <MaskedPasswordInput 
-                  value={teacherPassword}
-                  onChange={setTeacherPassword}
-                  className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
-                  required 
-                  placeholder="••••••••"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-black text-gray-400 block mb-1">
-                  {tField('تأكيد كلمة المرور', 'Confirm Password')}
-                </label>
-                <MaskedPasswordInput 
-                  value={teacherConfirmPassword}
-                  onChange={setTeacherConfirmPassword}
-                  className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
-                  required 
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
-
             <div>
               <label className="text-xs font-black text-gray-400 block mb-1">{tField('الشهادات الحاصلة عليها والإجازات السابقة بالتفصيل:', 'Certificates & Previous Ijaza:')}</label>
               <textarea 
@@ -653,6 +701,53 @@ export default function Register({
                 required 
                 placeholder={tField('اذكري الإجازات برواية حفص عن عاصم أو غيرها من القراءات والشهادات الأكاديمية...', 'Mention certificates in Hafs or other recitations in detail...')}
               />
+            </div>
+
+            {/* Account Credentials Selection (Last step before submitting) */}
+            <div className="p-5 rounded-2xl bg-slate-50 border border-gray-150 space-y-4">
+              <h6 className="font-extrabold text-brand-dark text-sm border-b border-gray-150 pb-2 flex items-center gap-1.5">
+                <span>🔒</span>
+                <span>{tField('بيانات اعتماد الحساب والدخول للمعلمة', 'Account Security & Sign In Credentials')}</span>
+              </h6>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-xs font-black text-gray-400 block mb-1">
+                    {tField('اسم المستخدم المعين للمعلمة', 'Account Username')}
+                  </label>
+                  <input 
+                    type="text" 
+                    value={teacherUsername}
+                    onChange={(e) => setTeacherUsername(e.target.value)}
+                    className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
+                    required 
+                    placeholder="e.g. marya_misk"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-black text-gray-400 block mb-1">
+                    {tField('كلمة المرور', 'Account Password')}
+                  </label>
+                  <MaskedPasswordInput 
+                    value={teacherPassword}
+                    onChange={setTeacherPassword}
+                    className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
+                    required 
+                    placeholder="••••••••"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-black text-gray-400 block mb-1">
+                    {tField('تأكيد كلمة المرور', 'Confirm Password')}
+                  </label>
+                  <MaskedPasswordInput 
+                    value={teacherConfirmPassword}
+                    onChange={setTeacherConfirmPassword}
+                    className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
+                    required 
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="pt-4">

@@ -259,23 +259,21 @@ export default function Profile({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-black text-gray-400 block mb-1">{tField('الاسم الأول', 'First Name')}</label>
-                  <input 
-                    type="text" 
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold"
-                    required 
-                  />
+                  <div className="w-full bg-slate-100 border border-gray-150 rounded-xl px-4 py-2.5 text-sm font-bold text-gray-500 flex items-center justify-between cursor-not-allowed select-none">
+                    <span>{firstName}</span>
+                    <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md border border-slate-300 font-extrabold flex items-center gap-1">
+                      🔒 {tField('لا يمكن تعديله', 'Read-Only')}
+                    </span>
+                  </div>
                 </div>
                 <div>
-                  <label className="text-xs font-black text-gray-400 block mb-1">{tField('اسم العائلة', 'Last Name')}</label>
-                  <input 
-                    type="text" 
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold"
-                    required 
-                  />
+                  <label className="text-xs font-black text-gray-400 block mb-1">{tField('اسم العائلة (اللقب)', 'Family Name')}</label>
+                  <div className="w-full bg-slate-100 border border-gray-150 rounded-xl px-4 py-2.5 text-sm font-bold text-gray-500 flex items-center justify-between cursor-not-allowed select-none">
+                    <span>{lastName}</span>
+                    <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md border border-slate-300 font-extrabold flex items-center gap-1">
+                      🔒 {tField('لا يمكن تعديله', 'Read-Only')}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -353,13 +351,12 @@ export default function Profile({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-black text-gray-400 block mb-1">{tField('الكلية / مكان العمل', 'College / Inst.')}</label>
-                  <input 
-                    type="text" 
-                    value={college}
-                    onChange={(e) => setCollege(e.target.value)}
-                    className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold"
-                    required 
-                  />
+                  <div className="w-full bg-slate-100 border border-gray-150 rounded-xl px-4 py-2.5 text-sm font-bold text-gray-500 flex items-center justify-between cursor-not-allowed select-none">
+                    <span>{college || '---'}</span>
+                    <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md border border-slate-300 font-extrabold flex items-center gap-1">
+                      🔒 {tField('لا يمكن تعديله', 'Read-Only')}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Level Selection matching specific roles (Locked for users) */}
@@ -374,17 +371,16 @@ export default function Profile({
                 </div>
               </div>
 
-              {/* Cohort edit (only for students) */}
+              {/* Cohort edit (only for students, locked) */}
               {!isTeacherOrAdmin && (
                 <div>
                   <label className="text-xs font-black text-gray-400 block mb-1">{tField('الدفعة الأكاديمية (Cohort Year)', 'Academic Cohort Year')}</label>
-                  <input 
-                    type="number" 
-                    value={cohort}
-                    onChange={(e) => setCohort(e.target.value)}
-                    className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold font-mono text-ltr"
-                    placeholder="e.g. 2023"
-                  />
+                  <div className="w-full bg-slate-100 border border-gray-150 rounded-xl px-4 py-2.5 text-sm font-bold text-gray-500 flex items-center justify-between cursor-not-allowed select-none">
+                    <span>{cohort || '---'}</span>
+                    <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md border border-slate-300 font-extrabold flex items-center gap-1">
+                      🔒 {tField('لا يمكن تعديله', 'Read-Only')}
+                    </span>
+                  </div>
                 </div>
               )}
 

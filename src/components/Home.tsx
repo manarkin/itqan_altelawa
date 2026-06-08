@@ -44,7 +44,8 @@ const ALL_SLOTS = [
   { key: '10:00-11:15', ar: '١٠:٠٠ - ١١:١٥ ص', en: '10:00 - 11:15 AM' },
   { key: '12:00-1:15', ar: '١٢:٠٠ - ١:١٥ ظ', en: '12:00 - 1:15 PM' },
   { key: '2:15-3:30', ar: '٢:١٥ - ٣:٣٠ ظ', en: '2:15 - 3:30 PM' },
-  { key: '4:15-5:30', ar: '٤:١٥ - ٥:٣٠ ع', en: '4:15 - 5:30 PM' }
+  { key: '4:15-5:30', ar: '٤:١٥ - ٥:٣٠ ع', en: '4:15 - 5:30 PM' },
+  { key: '8:00-9:15PM', ar: '٨:٠٠ - ٩:١٥ م', en: '8:00 - 9:15 PM' }
 ];
 
 export default function Home({
@@ -124,25 +125,120 @@ export default function Home({
   }
 
   // Define active slots based on student/teacher role and preferences
-  let activeSlots = ALL_SLOTS.slice(1); // Default is standard 5 slots (no Fajr)
+  let activeSlots = ALL_SLOTS.slice(1, 6); // Default is standard 5 slots (no Fajr, no 8-9:15pm)
   if (isTeacher) {
     if (teacherFormat === 'online') {
-      activeSlots = ALL_SLOTS; // includes Fajr
+      activeSlots = ALL_SLOTS; // includes Fajr and 8:00-9:15 PM
     } else {
-      activeSlots = ALL_SLOTS.slice(1); // Fajr cannot be held in person!
+      activeSlots = ALL_SLOTS.slice(1, 6); // Fajr and 8:00-9:15 PM cannot be held in person!
     }
   } else {
     if (studentType === 'postgrad') {
-      activeSlots = ALL_SLOTS; // Postgraduate gets Fajr
+      activeSlots = ALL_SLOTS; // Postgraduate gets Fajr and 8:00-9:15 PM
     } else {
-      activeSlots = ALL_SLOTS.slice(1);
+      activeSlots = ALL_SLOTS.slice(1, 6);
     }
   }
+
+  // Retrieve slot status, online-only restrictions and overall availability
+  const getSlotStatus = (dayKey: string, slotKey: string) => {
+    const isAlwaysOnlineOnly = slotKey === 'Fajr' || slotKey === '8:00-9:15PM';
+
+    // 1. Fridays and Saturdays: No in-person sessions at all.
+    if (dayKey === 'Friday' || dayKey === 'Saturday') {
+      if (isTeacher) {
+        if (teacherFormat === 'person') {
+          return {
+            allowed: false,
+            onlineOnly: true,
+            reasonAr: 'لا توجد حلقات حضورية في عطلة نهاية الأسبوع',
+            reasonEn: 'No in-person Mosque classes on weekends'
+          };
+        }
+        return { allowed: true, onlineOnly: true, reasonAr: 'حلقة عن بعد فقط', reasonEn: 'Online Only' };
+      } else {
+        if (studentType === 'undergrad') {
+          return {
+            allowed: false,
+            onlineOnly: true,
+            reasonAr: 'عن بعد فقط لطالبات الدراسات العليا',
+            reasonEn: 'Online Only (for postgraduates)'
+          };
+        } else {
+          return {
+            allowed: true,
+            onlineOnly: true,
+            reasonAr: 'عن بعد فقط يومي الجمعة والسبت',
+            reasonEn: 'Online Only'
+          };
+        }
+      }
+    }
+
+    // 2. Thursday afternoon: After 12.00-1.15 PM, i.e., '2:15-3:30', '4:15-5:30', '8:00-9:15PM'
+    if (dayKey === 'Thursday' && (slotKey === '2:15-3:30' || slotKey === '4:15-5:30' || slotKey === '8:00-9:15PM')) {
+      if (isTeacher) {
+        if (teacherFormat === 'person') {
+          return {
+            allowed: false,
+            onlineOnly: true,
+            reasonAr: 'لا توجد جلسات حضورية بعد الظهر يوم الخميس',
+            reasonEn: 'No physical sessions Thursday afternoon'
+          };
+        }
+        return { allowed: true, onlineOnly: true, reasonAr: 'عن بعد فقط للخميس بعد الظهر', reasonEn: 'Online Only' };
+      } else {
+        if (studentType === 'undergrad') {
+          return {
+            allowed: false,
+            onlineOnly: false,
+            reasonAr: 'لا توجد جلسات لطالبات البكالوريوس بعد الظهر بالخميس',
+            reasonEn: 'No sessions for Bachelor on Thursday afternoon'
+          };
+        } else {
+          return {
+            allowed: true,
+            onlineOnly: true,
+            reasonAr: 'عن بعد فقط للخميس بعد الظهر',
+            reasonEn: 'Online Only Thursday afternoon'
+          };
+        }
+      }
+    }
+
+    // Fajr / 8:00-9:15 PM is online-only
+    if (isAlwaysOnlineOnly) {
+      if (isTeacher && teacherFormat === 'person') {
+        return {
+          allowed: false,
+          onlineOnly: true,
+          reasonAr: 'هذا الوقت متاح عن بعد فقط',
+          reasonEn: 'This slot is online only'
+        };
+      }
+      return {
+        allowed: true,
+        onlineOnly: true,
+        reasonAr: 'عن بعد فقط',
+        reasonEn: 'Online Only'
+      };
+    }
+
+    return {
+      allowed: true,
+      onlineOnly: false,
+      reasonAr: '',
+      reasonEn: ''
+    };
+  };
 
   // Handle slot cell clicking
   const handleSlotClick = (dayKey: string, slotKey: string) => {
     const key = `${dayKey}_${slotKey}`;
-    
+    const status = getSlotStatus(dayKey, slotKey);
+
+    if (!status.allowed) return;
+
     if (isTeacher) {
       // Simple selection toggle for teachers based on their selected overall format
       setTimings(prev => ({
@@ -156,7 +252,7 @@ export default function Home({
           [key]: prev[key] === 'selected' ? undefined : 'selected'
         }));
       } else {
-        // Postgraduate cycle selector: undefined -> 'online' -> 'person' -> undefined
+        // Postgraduate cycle selector: undefined -> 'online' -> 'person' (if not onlineOnly) -> undefined
         setTimings(prev => {
           const current = prev[key];
           let next: 'selected' | 'online' | 'person' | undefined = undefined;
@@ -164,9 +260,8 @@ export default function Home({
           if (!current) {
             next = 'online';
           } else if (current === 'online') {
-            // Constraint: Fajr ("فجرية") cannot be held in-person!
-            if (slotKey === 'Fajr') {
-              next = undefined; // Skips "person", resets to empty
+            if (status.onlineOnly) {
+              next = undefined; // Skip in-person
             } else {
               next = 'person';
             }
@@ -569,57 +664,65 @@ export default function Home({
                 </span>
               </div>
 
-              {/* Grid implementation */}
+              {/* Grid implementation (Flipped: Days on top header, Timings as rows) */}
               <div className="overflow-x-auto border border-gray-150 rounded-2xl select-none">
                 <table className="w-full text-start text-xs border-collapse min-w-[750px]">
                   <thead>
                     <tr className="bg-slate-50/80 border-b border-gray-150 text-brand-dark text-[0.7rem] font-black uppercase text-center select-none font-sans">
-                      <th className="py-3 px-4 text-start font-serif text-[0.75rem]">{tField('اليوم الدراسي', 'SQU Cohort Day')}</th>
-                      {activeSlots.map(s => (
-                        <th key={s.key} className="py-3 px-1.5 border-s border-gray-150 text-center font-black">
-                          {isAr ? s.ar : s.en}
+                      <th className="py-3 px-4 text-start font-serif text-[0.75rem] w-[140px] sm:w-[160px] bg-slate-50">{tField('الفترة الزمنية / اليوم', 'Time slot / SQU Day')}</th>
+                      {activeDays.map(day => (
+                        <th key={day.key} className="py-3 px-1.5 border-s border-gray-150 text-center font-black">
+                          {isAr ? day.ar : day.en}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-150 select-none">
-                    {activeDays.map(day => (
-                      <tr key={day.key} className="hover:bg-slate-50/40 transition-colors">
-                        <td className="py-3 px-4 font-black text-brand-dark bg-slate-50/20 text-start w-[110px] sm:w-[130px]">
-                          {isAr ? day.ar : day.en}
+                    {activeSlots.map(slot => (
+                      <tr key={slot.key} className="hover:bg-slate-50/40 transition-colors">
+                        {/* Vertical Row Header: Time period */}
+                        <td className="py-3 px-4 font-black text-brand-dark bg-slate-50/30 text-start w-[140px] sm:w-[160px]">
+                          {isAr ? slot.ar : slot.en}
                         </td>
-                        {activeSlots.map(slot => {
+                        {activeDays.map(day => {
                           const key = `${day.key}_${slot.key}`;
                           const val = timings[key];
+                          const status = getSlotStatus(day.key, slot.key);
 
                           let cellStyle = "bg-white text-gray-400 hover:bg-brand-primary/[0.02]";
                           let content = "";
 
-                          if (isTeacher || studentType === 'undergrad') {
-                            if (val === 'selected') {
-                              cellStyle = "bg-brand-primary/10 border-brand-primary text-brand-primary font-black scale-[0.98]";
-                              content = isAr ? '✓ متاح' : '✓ Selected';
-                            } else {
-                              content = "-";
-                            }
+                          if (!status.allowed) {
+                            cellStyle = "bg-slate-100/70 text-slate-400 cursor-not-allowed border-dashed";
+                            content = tField('🔒 غير متاح', '🔒 Closed');
                           } else {
-                            // Postgraduate student cycles
-                            if (val === 'online') {
-                              cellStyle = "bg-sky-50 text-sky-700 font-extrabold scale-[0.98]";
-                              content = tField('💻 عن بعد', '💻 Online');
-                            } else if (val === 'person') {
-                              cellStyle = "bg-amber-50 text-amber-700 font-extrabold scale-[0.98]";
-                              content = tField('🏫 حضوري', '🏫 In-person');
+                            if (isTeacher || studentType === 'undergrad') {
+                              if (val === 'selected') {
+                                cellStyle = "bg-brand-primary/10 border-brand-primary text-brand-primary font-black scale-[0.98]";
+                                content = isAr ? '✓ متاح' : '✓ Selected';
+                              } else {
+                                content = "-";
+                              }
                             } else {
-                              content = "-";
+                              // Postgraduate student cycles
+                              if (val === 'online') {
+                                cellStyle = "bg-sky-50 text-sky-700 font-extrabold scale-[0.98] border border-sky-100";
+                                content = tField('💻 عن بعد', '💻 Online');
+                              } else if (val === 'person') {
+                                cellStyle = "bg-amber-50 text-amber-700 font-extrabold scale-[0.98] border border-amber-100";
+                                content = tField('🏫 حضوري', '🏫 In-person');
+                              } else {
+                                content = "-";
+                              }
                             }
                           }
 
                           return (
                             <td 
-                              key={slot.key}
+                              key={day.key}
                               onClick={() => handleSlotClick(day.key, slot.key)}
                               className={`py-3.5 px-2 text-center border-s border-gray-150 cursor-pointer select-none transition-all duration-150 text-[0.67rem] font-bold ${cellStyle}`}
+                              title={!status.allowed ? (isAr ? status.reasonAr : status.reasonEn) : undefined}
                             >
                               <div className="flex items-center justify-center min-h-[22px]">
                                 {content}
