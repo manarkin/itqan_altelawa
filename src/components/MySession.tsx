@@ -668,60 +668,16 @@ export default function MySession({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 font-sans text-start">
-            {session.students.map((stud) => {
-              const matchesSelected = stud.enrollmentDetails?.timings 
-                ? Object.keys(stud.enrollmentDetails.timings).filter(key => stud.enrollmentDetails.timings[key] === 'selected') 
-                : [];
-
-              return (
-                <div 
-                  key={stud.id} 
-                  className="p-4 bg-white border border-gray-150 rounded-2xl shadow-xs hover:shadow-sm hover:border-brand-primary/30 transition-all flex flex-col justify-between space-y-3"
-                >
-                  <div className="space-y-1.5">
-                    {/* Name & Avatar */}
-                    <div className="flex items-center gap-2.5">
-                      <img 
-                        src={stud.avatar || `https://picsum.photos/seed/${stud.id}/80/80`} 
-                        alt="" 
-                        className="w-10 h-10 rounded-full border border-slate-100 flex-shrink-0"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="truncate">
-                        <div className="font-extrabold text-brand-dark text-[13.5px] truncate">{stud.name}</div>
-                        <div className="text-[10px] text-gray-400 font-mono truncate">{stud.email || `${stud.id}@student.squ.edu.om`}</div>
-                      </div>
-                    </div>
-
-                    {/* Metadata Grid */}
-                    <div className="grid grid-cols-1 gap-1 text-[10.5px] font-bold text-gray-500 pt-1 border-t border-gray-50">
-                      <div>🎓 {lang === 'ar' ? 'الكلية:' : 'College:'} <span className="text-gray-700">{stud.college || (lang === 'ar' ? 'كلية العلوم' : 'Science')}</span></div>
-                      <div>🗓️ {lang === 'ar' ? 'الدفعة:' : 'Cohort:'} <span className="text-gray-700">{stud.cohort || '2023'}</span></div>
-                      <div className="font-mono">🆔 ID: <span className="text-gray-700">{stud.id}</span></div>
-                      <div className="font-mono">📱 {lang === 'ar' ? 'الهاتف:' : 'Phone:'} <span className="text-gray-750 font-extrabold">{stud.phone || '+968 9988 7766'}</span></div>
-                    </div>
-                  </div>
-
-                  {/* Timing selections */}
-                  {matchesSelected.length > 0 && (
-                    <div className="pt-2 border-t border-gray-100 flex flex-wrap gap-1 items-center">
-                      <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-tight">{lang === 'ar' ? 'أوقات الطالبة:' : 'Preferred times:'}</span>
-                      {matchesSelected.map(key => {
-                        const parts = key.split('_');
-                        const dayAr: Record<string, string> = { Sunday: 'أحد', Monday: 'إثنين', Tuesday: 'ثلاثاء', Wednesday: 'أربعاء', Thursday: 'خميس' };
-                        const dayName = lang === 'ar' ? (dayAr[parts[0]] || parts[0]) : parts[0].substring(0, 3);
-                        return (
-                          <span key={key} className="bg-amber-50 text-amber-800 text-[9px] px-1.5 py-0.5 rounded font-black border border-amber-200/40">
-                            {dayName} {parts[1]}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {session.students.map((stud) => (
+              <div 
+                key={stud.id} 
+                className="p-3.5 bg-slate-50 border border-gray-100 rounded-xl font-black text-brand-dark flex items-center gap-2.5 text-sm"
+              >
+                <div className="w-2.5 h-2.5 bg-brand-primary rounded-full" />
+                <span>{stud.name}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -775,32 +731,15 @@ export default function MySession({
                     </td>
 
                     <td className="py-4 text-start font-bold text-gray-600">
-                      <div>🎓 {stud.college || (lang === 'ar' ? 'كلية التربية' : 'Education')}</div>
-                      {stud.enrollmentDetails?.timings && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {Object.keys(stud.enrollmentDetails.timings)
-                            .filter(k => stud.enrollmentDetails.timings[k] === 'selected')
-                            .map(k => {
-                              const parts = k.split('_');
-                              const dayAr: Record<string, string> = { Sunday: 'أحد', Monday: 'إثنين', Tuesday: 'ثلاثاء', Wednesday: 'أربعاء', Thursday: 'خميس' };
-                              const dayLabel = lang === 'ar' ? (dayAr[parts[0]] || parts[0]) : parts[0].substring(0, 3);
-                              return (
-                                <span key={k} className="bg-amber-50 text-amber-800 text-[9px] px-1 rounded border border-amber-200 font-extrabold">
-                                  {dayLabel} {parts[1]}
-                                </span>
-                              );
-                            })}
-                        </div>
-                      )}
+                      🎓 {stud.college || (lang === 'ar' ? 'كلية التربية' : 'Education')}
                     </td>
 
-                    <td className="py-4 text-start font-mono text-gray-650 font-black">
+                    <td className="py-4 text-start font-mono text-gray-600">
                       📱 {stud.phone || '+968 9345 6789'}
                     </td>
 
                     <td className="py-4 text-start font-bold text-gray-500">
-                      <div>🆔 {stud.id}</div>
-                      <div className="text-[11px] text-gray-400 font-medium">Cohort {stud.cohort || '2022'}</div>
+                      🆔 Cohort {stud.cohort || '2022'}
                     </td>
 
                     <td className="py-4 text-end">
