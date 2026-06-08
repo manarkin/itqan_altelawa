@@ -32,6 +32,29 @@ export default function Register({
   const [regStudentType, setRegStudentType] = useState<'undergrad' | 'postgrad'>('undergrad');
   const [regFirstTime, setRegFirstTime] = useState<'yes' | 'no'>('yes');
   const [selectedCollege, setSelectedCollege] = useState('');
+
+  // Student specific timing/format states
+  const [studentPrefFormat, setStudentPrefFormat] = useState<'in-person' | 'online' | 'flexible'>('flexible');
+  const [studentSelectedTimings, setStudentSelectedTimings] = useState<Record<string, 'selected'>>({});
+
+  // Teacher specific status/timing states
+  const [teacherFirstTime, setTeacherFirstTime] = useState<'yes' | 'no'>('no');
+  const [teacherTeachingStatus, setTeacherTeachingStatus] = useState<'certified' | 'iqraa' | 'first_time'>('certified');
+  const [teacherCurrentLevel, setTeacherCurrentLevel] = useState<'beginner' | 'intermediate' | 'advanced' | 'all'>('all');
+  const [teacherGoal, setTeacherGoal] = useState('');
+  const [teacherSelectedTimings, setTeacherSelectedTimings] = useState<Record<string, 'selected'>>({});
+  const [teacherSelectedFormats, setTeacherSelectedFormats] = useState<Record<string, 'online' | 'in-person' | 'both'>>({});
+
+  const registerSlots = [
+    { key: 'Sunday_10:00-11:15', labelAr: 'الأحد | ١٠:٠٠ - ١١:١٥ ص', labelEn: 'Sunday | 10:00 - 11:15 AM' },
+    { key: 'Sunday_4:15-5:30', labelAr: 'الأحد | ٤:١٥ - ٥:٣٠ م', labelEn: 'Sunday | 4:15 - 5:30 PM' },
+    { key: 'Monday_10:00-11:15', labelAr: 'الاثنين | ١٠:٠٠ - ١١:١٥ ص', labelEn: 'Monday | 10:00 - 11:15 AM' },
+    { key: 'Monday_2:15-3:30', labelAr: 'الاثنين | ٢:١٥ - ٣:٣٠ م', labelEn: 'Monday | 2:15 - 3:30 PM' },
+    { key: 'Tuesday_10:00-11:15', labelAr: 'الثلاثاء | ١٠:٠٠ - ١١:١٥ ص', labelEn: 'Tuesday | 10:00 - 11:15 AM' },
+    { key: 'Tuesday_4:15-5:30', labelAr: 'الثلاثاء | ٤:١٥ - ٥:٣٠ م', labelEn: 'Tuesday | 4:15 - 5:30 PM' },
+    { key: 'Wednesday_10:00-11:15', labelAr: 'الأربعاء | ١٠:٠٠ - ١١:١٥ ص', labelEn: 'Wednesday | 10:00 - 11:15 AM' },
+    { key: 'Thursday_10:00-11:15', labelAr: 'الخميس | ١٠:٠٠ - ١١:١٥ ص', labelEn: 'Thursday | 10:00 - 11:15 AM' }
+  ];
   
   // Custom attachment names to simulate real file drops
   const [cardPicName, setCardPicName] = useState('');
@@ -129,7 +152,14 @@ export default function Register({
         cardPicName: cardPicName || 'student_id_upload.png',
         voiceFileName: voiceFileName || (regFirstTime === 'yes' ? 'sample_voice.mp3' : ''),
         approved: false, // starts as Not Checked
-        isNew: true
+        isNew: true,
+        studentType: regStudentType,
+        preferredFormat: studentPrefFormat,
+        enrollmentDetails: {
+          timings: studentSelectedTimings,
+          preferredSessionFormat: studentPrefFormat,
+          notes: ''
+        }
       };
 
       // Save both by email and by username
@@ -161,12 +191,20 @@ export default function Register({
         college: 'Education',
         cohort: '',
         employeeId: teacherId || 'EMP' + Math.floor(1000 + Math.random() * 9000),
-        level: 'مجازة',
+        level: teacherTeachingStatus === 'certified' ? 'مجازة' : teacherTeachingStatus === 'iqraa' ? 'طالبة اقراء' : 'معلمة لأول مرة',
         username: teacherUsername,
         password: teacherPassword,
         avatar: 'https://picsum.photos/seed/teacher_new/200/200',
         approved: false, // starts as Not Checked
-        isNew: true
+        isNew: true,
+        firstTimeTeacher: teacherFirstTime === 'yes',
+        teachingStatus: teacherTeachingStatus,
+        currentTeachingLevel: teacherCurrentLevel,
+        teachingGoal: teacherGoal,
+        teachingFormat: teacherSelectedFormats,
+        enrollmentDetails: {
+          timings: teacherSelectedTimings
+        }
       };
 
       // Save both by email and by username
@@ -562,6 +600,74 @@ export default function Register({
                 </div>
               )}
 
+              {/* TIMING AND SESSION PREFERENCES (New Section) */}
+              <div className="p-5 rounded-2xl bg-brand-primary/[0.02] border border-brand-primary/10 space-y-4">
+                <h6 className="font-extrabold text-brand-dark text-sm border-b border-gray-150 pb-2 flex items-center gap-1.5">
+                  <span>⏰</span>
+                  <span>{tField('تفضيلات الحضور وجدول التوقيتات المناسب بالحلقات', 'Attendance Formats & Preferred Timeslots')}</span>
+                </h6>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-black text-gray-400 block mb-1">
+                      {tField('نمط مراجعة وحضور تلاوة الحلقة المفضل:', 'Preferred Class Format:')}
+                    </label>
+                    <select
+                      value={studentPrefFormat}
+                      onChange={(e) => setStudentPrefFormat(e.target.value as any)}
+                      className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold"
+                    >
+                      <option value="in-person">🏫 {tField('حضوري فقط بجامعة السلطان قابوس', 'In-Person strictly at SQU')}</option>
+                      <option value="online">💻 {tField('عن بعد عبر الأثير (MS Teams)', 'Online via Teams')}</option>
+                      <option value="flexible">🌟 {tField('مرنة وهجين (حسب الموزّع الذكي)', 'Flexible/Hybrid (Suggested by Solver)')}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-400 font-extrabold block mb-1.5 leading-relaxed">
+                      {tField('حددي الأوقات المناسبة لتسميعك:', 'Select your SQU Timing Availabilities:')}
+                    </span>
+                    <small className="text-[10px] text-gray-400 leading-normal font-bold block">
+                      {tField('حددي فترتين على الأقل لتمكين خوارزمية الدمج من إقرانك بحلقة ملائمة لدفعتك ومستواك.', 'Choose at least 2 slots to assist the assignment algorithm in placing you.')}
+                    </small>
+                  </div>
+                </div>
+
+                {/* Grid checklist */}
+                <div>
+                  <label className="text-xs font-black text-gray-400 block mb-2">
+                    {tField('الفترات الزمنية المتاحة لديكِ (حددي المنسجم):', 'Weekly timeslots available on your SQU Schedule:')}
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {registerSlots.map(slot => {
+                      const isChecked = !!studentSelectedTimings[slot.key];
+                      return (
+                        <label 
+                          key={slot.key}
+                          className={`p-3 rounded-xl border flex items-center gap-2.5 cursor-pointer hover:bg-slate-50 transition-colors ${
+                            isChecked ? 'border-brand-primary bg-brand-primary/[0.04]' : 'border-gray-100 bg-white'
+                          }`}
+                        >
+                          <input 
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              setStudentSelectedTimings(prev => {
+                                const next = { ...prev };
+                                if (isChecked) delete next[slot.key];
+                                else next[slot.key] = 'selected';
+                                return next;
+                              });
+                            }}
+                            className="w-4 h-4 text-brand-primary rounded border-gray-305 cursor-pointer"
+                          />
+                          <span className="text-[11px] font-bold text-slate-700">{tField(slot.labelAr, slot.labelEn)}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
               {/* Account Credentials Selection (Last step before agreement) */}
               <div className="p-5 rounded-2xl bg-slate-50 border border-gray-150 space-y-4">
                 <h6 className="font-extrabold text-brand-dark text-sm border-b border-gray-150 pb-2 flex items-center gap-1.5">
@@ -731,6 +837,143 @@ export default function Register({
                 required 
                 placeholder={tField('اذكري الإجازات برواية حفص عن عاصم أو غيرها من القراءات والشهادات الأكاديمية...', 'Mention certificates in Hafs or other recitations in detail...')}
               />
+            </div>
+
+            {/* TEACHER SCHEDULING AND MATCHING PREFERENCES */}
+            <div className="p-5 rounded-2xl bg-brand-primary/[0.02] border border-brand-primary/10 space-y-4">
+              <h6 className="font-extrabold text-brand-dark text-sm border-b border-gray-150 pb-2 flex items-center gap-1.5">
+                <span>🕌</span>
+                <span>{tField('أهلية التدريس وجدول تفريعات الحلقات المطلوبة', 'Teaching Profiles & Timing Availabilities')}</span>
+              </h6>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-xs font-black text-gray-400 block mb-1">
+                    {tField('هل تشرفين لأول مرة بالنادي؟', 'First-Time Mentor?')}
+                  </label>
+                  <select
+                    value={teacherFirstTime}
+                    onChange={(e) => setTeacherFirstTime(e.target.value as any)}
+                    className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-3 py-2 text-xs font-bold"
+                  >
+                    <option value="no">{tField('لا، لدي خبرة سابقة بالنادي', 'No, returning mentor')}</option>
+                    <option value="yes">{tField('نعم، معلمة جديدة مرشحة', 'Yes, first-time applicant')}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-black text-gray-400 block mb-1">
+                    {tField('المستوى الذي ترغبين بالإشراف عليه:', 'Target Recitation Level:')}
+                  </label>
+                  <select
+                    value={teacherCurrentLevel}
+                    onChange={(e) => setTeacherCurrentLevel(e.target.value as any)}
+                    className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-3 py-2 text-xs font-bold"
+                  >
+                    <option value="all">{tField('جميع المستويات بلا استثناء', 'All Levels')}</option>
+                    <option value="beginner">{tField('تلقين ومبتدئة (مخارج وطي حروف)', 'Beginners Only')}</option>
+                    <option value="intermediate">{tField('تلاوة ميسرة ومتوسطة', 'Intermediate Only')}</option>
+                    <option value="advanced">{tField('حفظ ومتقدمة (أحكام وتجويد دقيق)', 'Advanced Only')}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-black text-gray-400 block mb-1">
+                    {tField('أهليتك الحالية في الإجازة:', 'Your Credentials Category:')}
+                  </label>
+                  <select
+                    value={teacherTeachingStatus}
+                    onChange={(e) => setTeacherTeachingStatus(e.target.value as any)}
+                    className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-3 py-2 text-xs font-bold"
+                  >
+                    <option value="certified">{tField('خاتمة ومجازة بالسند', 'Certified / Hafiz with Sanad')}</option>
+                    <option value="iqraa">{tField('طالبة إقراء متقدمة', 'Advanced Recitation Student')}</option>
+                    <option value="first_time">{tField('متطوعة متميزة بالتجويد', 'Volunteer Reciter')}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-black text-gray-400 block mb-1">
+                  {tField('رسالتك أو هدفك التربوي لحلقتك هذا الفصل الدراسي:', 'Your Educational Goal for the Session:')}
+                </label>
+                <input
+                  type="text"
+                  value={teacherGoal}
+                  onChange={(e) => setTeacherGoal(e.target.value)}
+                  placeholder={tField('مثال: ربط التلاوة بالتطبيق العملي والأخلاق الحاملة للقرآن...', 'Example: Building character along with rigorous reading rule compliance...')}
+                  className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-xs font-bold"
+                />
+              </div>
+
+              {/* Timeslots checkbox grid with interactive format preference */}
+              <div>
+                <label className="text-xs font-black text-gray-400 block mb-2">
+                  {tField('أوقات فراغك المتاحة للتدريس وتنسيق التواجد المفضل لكل فترة:', 'Select available timeslots & specify format preference for each:')}
+                </label>
+                
+                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-2">
+                   {registerSlots.map(slot => {
+                     const isChecked = !!teacherSelectedTimings[slot.key];
+                     const currentFormat = teacherSelectedFormats[slot.key] || 'both';
+
+                     return (
+                       <div 
+                         key={slot.key}
+                         className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                           isChecked ? 'border-brand-primary bg-brand-primary/[0.03]' : 'border-gray-100 bg-white'
+                         }`}
+                       >
+                         <label className="flex items-center gap-2.5 cursor-pointer">
+                           <input 
+                             type="checkbox"
+                             checked={isChecked}
+                             onChange={() => {
+                               setTeacherSelectedTimings(prev => {
+                                 const next = { ...prev };
+                                 if (isChecked) delete next[slot.key];
+                                 else next[slot.key] = 'selected';
+                                 return next;
+                               });
+                             }}
+                             className="w-4 h-4 text-brand-primary rounded border-gray-305 cursor-pointer"
+                           />
+                           <span className="text-[11px] font-bold text-slate-700">{tField(slot.labelAr, slot.labelEn)}</span>
+                         </label>
+
+                         {isChecked && (
+                           <div className="flex items-center gap-2">
+                             <span className="text-[10px] text-gray-400 font-bold">{tField('النمط:', 'Format:')}</span>
+                             <div className="inline-flex rounded-lg bg-gray-100 p-0.5">
+                               {(['in-person', 'online', 'both'] as const).map(option => (
+                                 <button
+                                   key={option}
+                                   type="button"
+                                   onClick={() => {
+                                     setTeacherSelectedFormats(prev => ({
+                                       ...prev,
+                                       [slot.key]: option
+                                     }));
+                                   }}
+                                   className={`px-2 py-1 text-[10px] font-black rounded-md transition-all ${
+                                     currentFormat === option
+                                       ? 'bg-white text-brand-primary shadow-xs'
+                                       : 'text-gray-400 hover:text-gray-600'
+                                   }`}
+                                 >
+                                   {option === 'in-person' && tField('حضوري', 'In-Person')}
+                                   {option === 'online' && tField('عن بعد', 'Online')}
+                                   {option === 'both' && tField('كلاهما', 'Both')}
+                                 </button>
+                               ))}
+                             </div>
+                           </div>
+                         )}
+                       </div>
+                     );
+                   })}
+                </div>
+              </div>
             </div>
 
             {/* Account Credentials Selection (Last step before submitting) */}
