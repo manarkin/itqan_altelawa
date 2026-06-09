@@ -7,6 +7,7 @@ import {
   GlobalStudent, 
   GlobalTeacher 
 } from '../types';
+import AssignmentDashboard from './AssignmentWizard/AssignmentDashboard';
 import { 
   Users, 
   BookOpen, 
@@ -47,7 +48,7 @@ interface ControlPanelProps {
   t: () => any;
 }
 
-type AdminSubView = 'default' | 'students' | 'teachers' | 'sessions';
+type AdminSubView = 'default' | 'students' | 'teachers' | 'sessions' | 'assignments';
 
 export default function ControlPanel({
   user,
@@ -1061,6 +1062,22 @@ export default function ControlPanel({
     );
   }
 
+  if (subView === 'assignments') {
+    return (
+      <AssignmentDashboard
+        sessions={sessions}
+        setSessions={setSessions}
+        allStudents={allStudents}
+        setAllStudents={setAllStudents}
+        allTeachers={allTeachers}
+        setAllTeachers={setAllTeachers}
+        lang={lang}
+        t={t}
+        onBack={() => setSubView('default')}
+      />
+    );
+  }
+
   if (subView === 'students') {
     const filteredStudents = allStudents.filter(stud => {
       // Search term Match
@@ -1876,6 +1893,32 @@ export default function ControlPanel({
           <h3 className="text-3xl font-black text-white mb-1">{adminStats.pendingRequests}</h3>
           <p className="text-white/70 text-xs font-black block uppercase tracking-wider">{t().requests}</p>
         </div>
+      </div>
+
+      {/* Smart Assignment Hub Custom SQU Banner */}
+      <div className="bg-gradient-to-r from-brand-primary to-emerald-700 text-white rounded-3xl p-6 mb-8 relative overflow-hidden shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-6 text-start select-none">
+        <div className="absolute top-0 right-0 opacity-10 pointer-events-none transform translate-x-10 -translate-y-4">
+          <Sparkles className="text-white w-56 h-56" />
+        </div>
+        <div className="space-y-2 max-w-2xl">
+          <span className="text-[10px] bg-white/20 border border-white/20 px-2.5 py-0.5 rounded-md font-black uppercase tracking-widest block w-fit">
+            AI-Driven Allocation Pipeline
+          </span>
+          <h3 className="text-xl sm:text-2xl font-black">
+            {lang === 'ar' ? 'منصة التوزيع والفرز الإلكتروني المستقل' : 'Smart Assignment & Allocation Hub'}
+          </h3>
+          <p className="text-xs sm:text-sm text-white/90 font-bold leading-relaxed">
+            {lang === 'ar' 
+              ? 'توزيع طالبات البكالوريوس (حضوري) ومطابقة طالبات الدراسات العليا والموظفات (أونلاين) في مسارات مستقلة ومنع النزاعات التلقائية.'
+              : 'Sort SQU Undergraduate physical classroom spaces independently from MS Teams Postgraduate digital tracks with zero conflict overlaps.'}
+          </p>
+        </div>
+        <button
+          onClick={() => setSubView('assignments')}
+          className="bg-white hover:bg-white/95 text-brand-primary px-6 py-3.5 rounded-2xl text-xs font-black shadow-md shrink-0 transition-transform active:scale-95 flex items-center gap-1 w-full md:w-auto justify-center cursor-pointer"
+        >
+          <span>🎯 {lang === 'ar' ? 'تشغيل منصة الفرز والتوزيع الذكي' : 'Enter Assignment Dashboard'}</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-start">
