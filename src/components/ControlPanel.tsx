@@ -118,6 +118,15 @@ export default function ControlPanel({
   const [activeAllocationSemesterId, setActiveAllocationSemesterId] = useState<string | null>(null);
   const [assignMethod, setAssignMethod] = useState<'automated' | 'manual'>('automated');
 
+  // Helper to construct a full name with all parts
+  const getPreciseFullName = (item: any) => {
+    if (!item) return '';
+    if (item.firstName) {
+      return `${item.firstName} ${item.fatherName || ''} ${item.grandfatherName || ''} ${item.lastName || ''}`.replace(/\s+/g, ' ').trim();
+    }
+    return item.name || '';
+  };
+
   // Helper to retrieve timing preferences
   const getTeacherAvailableTimes = (teacher: any) => {
     if (!teacher || !teacher.enrollmentDetails || !teacher.enrollmentDetails.timings) return [];
@@ -448,626 +457,68 @@ export default function ControlPanel({
       case 'INTERMEDIATE':
       case 'تمهيدية':
       case 'متوسطة':
-        return 'تمهيدية';
+        return 'تمهيدي / متوسطة';
       case 'ADVANCED':
       case 'متقدمة':
         return 'متقدمة';
-      case 'TAMKEEN':
-      case 'تمكين':
-        return 'تمهيدية';
-      default: return lvl || 'غير مصنفة';
+      default:
+        return lvl;
     }
   };
 
-  const getPreciseFullName = (item: any) => {
-    if (item.firstName) {
-      return `${item.firstName} بنت ${item.fatherName || '---'} بن ${item.grandfatherName || '---'} ${item.lastName || ''}`;
-    }
-    return item.name || '---';
-  };
+  if (subView === 'assignments') {
+    const isAr = lang === 'ar';
+    const tLabel = (ar: string, en: string) => isAr ? ar : en;
+    const activeSem = semesters.find(s => s.id === activeAllocationSemesterId);
+    const semTitleStr = activeSem ? activeSem.title : '';
 
-  const renderManualWorkspace = () => {
     return (
-      <div className="space-y-6 text-start">
-        {/* Create/Edit Session Card Form */}
-        <div className="bg-white rounded-3xl border border-brand-primary/10 shadow-sm p-6 mb-8 text-start relative">
-          <h3 className="text-sm sm:text-base font-black text-brand-dark mb-4 pb-2 border-b border-gray-150 flex items-center gap-2">
-            <PlusCircle className="w-5 h-5 text-brand-primary animate-pulse" />
-            {editingDraftId 
-              ? (lang === 'ar' ? `تحديث مصفوفة حلقة التلاوة` : `Update Recitation Session Grid`)
-              : (lang === 'ar' ? 'تصميم وإطلاق حلقة تلاوة جديدة' : 'Design & Configure New Recitation Circle')}
-          </h3>
-
-          <form onSubmit={handleSaveSession} className="space-y-6">
-            
-            {/* 1. Teacher Selector with details and level */}
-            <div className="space-y-3">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-wider block">
-                {lang === 'ar' ? '١. اختاري المعلمة المشرفة للمقرأة والتحفيظ:' : '1. Choose Recitation Supervisor Teacher:'} <span className="text-red-500">*</span>
-              </label>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[300px] overflow-y-auto pr-1">
-                {allTeachers.filter(t => t.approved).map((tc) => {
-                  const tcName = getPreciseFullName(tc);
-                  const isSelected = sessTeacherEmail === tc.email;
-                  return (
-                    <div
-                      key={tc.email}
-                      onClick={() => {
-                        setSessTeacherEmail(tc.email);
-                        const availableTimes = getTeacherAvailableTimes(tc);
-                        if (availableTimes.length > 0) {
-                          setSessTimeSlot(availableTimes[0]);
-                        } else {
-                          setSessTimeSlot('');
-                        }
-                      }}
-                      className={`p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer text-start flex justify-between items-center ${
-                        isSelected 
-                          ? 'border-brand-primary bg-brand-primary/[0.02] ring-4 ring-brand-primary/15'
-                          : 'border-slate-150 bg-white hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="space-y-1">
-                        <h4 className="text-xs sm:text-sm font-black text-brand-dark flex items-center gap-1.5">
-                          <span>👩‍🏫</span>
-                          <span>{tcName}</span>
-                        </h4>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[10px] bg-brand-neutral/80 text-brand-primary px-2 py-0.5 rounded-md font-extrabold border border-brand-primary/10">
-                            {lang === 'ar' ? getArabicLevelName(tc.level) : (tc.level || 'Certified')}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-bold font-mono">
-                            {tc.email}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex gap-2 items-center" onClick={(e) => e.stopPropagation()}>
-                        {/* View Details Button */}
-                        <button
-                          type="button"
-                          onClick={() => setSelectedTeacherDetails(tc)}
-                          className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-[10px] font-black rounded-lg text-slate-500 transition-colors cursor-pointer"
-                        >
-                          ℹ️ {lang === 'ar' ? 'عرض التفاصيل' : 'Details'}
-                        </button>
-                        
-                        {/* Selected Radio status indicator */}
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                          isSelected ? 'border-brand-primary bg-brand-primary text-white' : 'border-slate-300'
-                        }`}>
-                          {isSelected && <span className="text-[10px] font-bold">✓</span>}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 text-start select-none animate-fade-in">
+        {/* Full-Page Studio Header */}
+        <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8 border-b border-gray-150 pb-6">
+          <div className="space-y-1.5 text-start">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-brand-primary block animate-pulse"></span>
+              <span className="text-[10px] bg-brand-primary/10 text-brand-primary font-black px-2.5 py-1 rounded-md uppercase tracking-wider block w-fit">
+                {tLabel('مركـز الفـرز والتوزيـع والأفـواج • SQU Allocation Studio', 'SQU Allocation & Placements Studio')}
+              </span>
             </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-brand-dark">
+              {tLabel(`أداة توزيع الطالبات لـ: ${semTitleStr}`, `Allocation Tool: ${semTitleStr}`)}
+            </h2>
+            <p className="text-xs text-slate-400 font-bold block">
+              {tLabel('التسكين التلقائي والموزع الذكي لشواغر الطالبات، وتفويج وبناء حلقات التلاوة يدوياً بحسب التفرغات وتوزع المقارئ.', 'Assign students automatically or design recitation circles manually with full capacity slot audits.')}
+            </p>
+          </div>
 
-            {/* 2. Automatic available times population */}
-            {sessTeacherEmail ? (
-              <div className="space-y-2 p-5 bg-slate-50 border border-slate-150 rounded-2xl">
-                <h5 className="text-xs font-black text-brand-dark text-start flex items-center gap-1.5">
-                  <span className="text-brand-primary">⏰</span>
-                  <span>{lang === 'ar' ? 'الأوقات الشاغرة المقيدة في جدول المعلمة المختارة:' : 'Available Timing slots on Selected Teacher\'s Schedule:'}</span>
-                </h5>
-                
-                {(() => {
-                  const selectedT = allTeachers.find(t => t.email === sessTeacherEmail);
-                  const availableTimes = selectedT ? getTeacherAvailableTimes(selectedT) : [];
-                  
-                  if (availableTimes.length === 0) {
-                    return (
-                      <p className="text-xs text-amber-600 font-bold bg-amber-50 p-3 rounded-xl border border-amber-100">
-                        ⚠ {lang === 'ar' ? 'هذه المعلمة لم تسجل أي أوقات أو ساعات تلاوة شاغرة حالياً.' : 'This teacher has not registered any available recitation times currently.'}
-                      </p>
-                    );
-                  }
-                  
-                  return (
-                    <div className="flex flex-wrap gap-2 pt-1.5">
-                      {availableTimes.map((timeKey) => {
-                        const isSelectedTime = sessTimeSlot === timeKey;
-                        return (
-                          <button
-                            key={timeKey}
-                            type="button"
-                            onClick={() => setSessTimeSlot(timeKey)}
-                            className={`px-4.5 py-2.5 rounded-xl text-xs font-extrabold font-mono transition-all border-2 cursor-pointer flex items-center gap-1.5 ${
-                              isSelectedTime
-                                ? 'border-brand-primary bg-brand-primary text-white scale-102 shadow-xs'
-                                : 'border-slate-200 bg-white hover:border-slate-350 text-slate-650'
-                            }`}
-                          >
-                            <span>{isSelectedTime ? '✓' : '•'}</span>
-                            <span>{formatTimingKey(timeKey, lang)}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
-              </div>
-            ) : (
-              <div className="text-xs font-bold text-slate-400 italic bg-slate-50 p-4 rounded-2xl border border-dashed border-slate-250">
-                {lang === 'ar' ? 'الرجاء اختيار معلمة أولاً لإظهار المواعيد الشاغرة تلقائياً.' : 'Please select a teacher first to display her available schedules automatically.'}
-              </div>
-            )}
-
-            {/* 3. Divided Tools to assign students: Online vs. In-Person */}
-            <div className="space-y-4">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-wider block">
-                {lang === 'ar' ? '٢. اختاري أداة توجيه الطلبة والمسار (حضوري / أونلاين):' : '2. Choose Delivery Format alignment tool (Online / In-Person):'}
-              </label>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Tool A: In-Person Recitations */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSessFormat('person');
-                    setSessLocation(lang === 'ar' ? 'مسجد الجامعة - قاعات التربية (حضوري)' : 'SQU Campus Mosque (In-Person)');
-                    setSessColor('#059669');
-                  }}
-                  className={`p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer flex flex-col items-start gap-1.5 ${
-                    sessFormat === 'person'
-                      ? 'border-emerald-600 bg-emerald-50/20 text-emerald-950 ring-4 ring-emerald-100'
-                      : 'border-slate-200 bg-white hover:border-slate-300 text-slate-600'
-                  }`}
-                >
-                  <div className="flex justify-between items-center w-full">
-                    <span className="text-xl">🏫</span>
-                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${sessFormat === 'person' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                      {lang === 'ar' ? 'أداة النشاط الحضوري' : 'In-Person Active Tool'}
-                    </span>
-                  </div>
-                  <span className="text-xs font-black mt-1">{lang === 'ar' ? 'حلقات مسجد الجامعة والتربية' : 'Mosque & Campus Rooms'}</span>
-                  <span className="text-[10px] text-slate-400 font-bold block text-start">
-                    {lang === 'ar' ? 'تخصيص الطالبات الراغبات في التعلم الوجاهي بمصلى الطالبات.' : 'Assign students with physical presence request.'}
-                  </span>
-                </button>
-
-                {/* Tool B: Online Recitations */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSessFormat('online');
-                    setSessLocation(lang === 'ar' ? 'عبر الأثير - تيمز (أونلاين)' : 'Teams Digital Channel (Online)');
-                    setSessColor('#2563eb');
-                  }}
-                  className={`p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer flex flex-col items-start gap-1.5 ${
-                    sessFormat === 'online'
-                      ? 'border-brand-primary bg-brand-primary/5 text-brand-dark ring-4 ring-brand-primary/10'
-                      : 'border-slate-200 bg-white hover:border-slate-300 text-slate-600'
-                  }`}
-                >
-                  <div className="flex justify-between items-center w-full">
-                    <span className="text-xl">💻</span>
-                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${sessFormat === 'online' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500'}`}>
-                      {lang === 'ar' ? 'أداة النشاط الرقمي' : 'Digital Active Tool'}
-                    </span>
-                  </div>
-                  <span className="text-xs font-black mt-1">{lang === 'ar' ? 'حلقات ميكروسوفت تيمز المباشرة' : 'MS Teams Digital Circle'}</span>
-                  <span className="text-[10px] text-slate-400 font-bold block text-start">
-                    {lang === 'ar' ? 'أداة سريعة لفرز الطالبات عن بُعد أو الفترات الفجرية فقط.' : 'Configure virtual stream assignments.'}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* 4. Dropdown list to assign students: Color-coded, arranged by level, level-locked */}
-            <div className="space-y-3">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-wider block">
-                {lang === 'ar' ? '٣. تحديد منسقات وصاحبات التلاوة بالحلقة (تعيين الطالبات):' : '3. Check-off students enrolled in the circle (Assign Students list):'}
-              </label>
-              
-              {/* Currently Assigned Students visual state panel */}
-              <div className="flex flex-wrap gap-2 p-4 bg-slate-50 border border-slate-150 rounded-2xl min-h-[56px] items-center text-start">
-                {sessSelectedStudentIds.length === 0 ? (
-                  <span className="text-xs text-slate-450 italic font-bold">
-                    {lang === 'ar' 
-                      ? 'لا توجد طالبات يعاد تعيينهن حالياً. اختري طالبة من القائمة بالأسفل للتحقق وسيقفل مستوى الحلقة على تصنيفها تلقائياً!' 
-                      : 'No students assigned yet. Select a student below to automatically determine and lock this session\'s level.'}
-                  </span>
-                ) : (
-                  sessSelectedStudentIds.map(stId => {
-                    const stud = allStudents.find(s => s.studentId === stId || s.email === stId || s.name === stId);
-                    const name = stud ? getPreciseFullName(stud) : stId;
-                    const levelCode = stud ? (stud.level || '').toUpperCase() : '';
-                    
-                    let bgCol = 'bg-slate-100 text-slate-800 border-slate-200';
-                    if (levelCode.includes('BEGINNER') || levelCode.includes('مبتدئة')) {
-                      bgCol = 'bg-emerald-50 text-emerald-800 border-emerald-200';
-                    } else if (levelCode.includes('INTERMEDIATE') || levelCode.includes('تمهيدية') || levelCode.includes('متوسطة')) {
-                      bgCol = 'bg-amber-50 text-amber-850 border-amber-205';
-                    } else if (levelCode.includes('ADVANCED') || levelCode.includes('متقدمة')) {
-                      bgCol = 'bg-indigo-50 text-indigo-850 border-indigo-205';
-                    } else if (levelCode.includes('TAMKEEN') || levelCode.includes('تمكين')) {
-                      bgCol = 'bg-amber-50 text-amber-850 border-amber-205';
-                    }
-
-                    return (
-                      <span 
-                        key={stId} 
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-extrabold shadow-3xs ${bgCol}`}
-                      >
-                        <span>👤 {name}</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSessSelectedStudentIds(prev => prev.filter(id => id !== stId));
-                          }}
-                          className="w-4 h-4 rounded-full bg-black/10 hover:bg-black/20 text-center flex items-center justify-center text-[10px] font-black cursor-pointer"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    );
-                  })
-                )}
-              </div>
-
-              {/* Dynamic lock info bar */}
-              {(() => {
-                const determinedLevel = getDeterminedSessionLevel();
-                if (determinedLevel) {
-                  let levelLabel = determinedLevel;
-                  if (lang === 'ar') {
-                    if (determinedLevel === 'BEGINNER') levelLabel = 'مبتدئة';
-                    if (determinedLevel === 'INTERMEDIATE') levelLabel = 'تمهيدية / متوسطة';
-                    if (determinedLevel === 'ADVANCED') levelLabel = 'متقدمة';
-                    // TAMKEEN classification removed
-                  }
-                  return (
-                    <div className="flex items-center gap-2 p-3 bg-brand-primary/5 text-brand-primary rounded-xl border border-brand-primary/15 text-xs font-black animate-fade-in">
-                      <span>🔒</span>
-                      <span>
-                        {lang === 'ar' 
-                          ? `حالة الحلقة: قيد الإغلاق الآمن على مستوى (${levelLabel}). تم إخفاء الطالبات من كافة المستويات الأخرى تلقائياً لمنع الخلط.` 
-                          : `Circle Safety State: Pinned on level (${levelLabel}). Other student tiers have temporarily disappeared to maintain level consistency.`}
-                      </span>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-
-              {/* Dropdown student picker & searching list */}
-              <div className="space-y-2 mt-1.5">
-                <input
-                  type="text"
-                  placeholder={lang === 'ar' ? 'ابحثي بالاسم أو الرقم الجامعي لتعيين الطالبة...' : 'Type name or university ID to search student...'}
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-brand-primary rounded-xl px-4 py-2.5 text-xs font-bold focus:outline-none"
-                  onChange={(e) => setStudentSearchQuery(e.target.value)}
-                  value={studentSearchQuery}
-                />
-                
-                <div className="border border-slate-200 bg-white rounded-2xl max-h-[220px] overflow-y-auto p-2 space-y-1.5">
-                  {(() => {
-                    const determinedLevel = getDeterminedSessionLevel();
-                    
-                    const eligibleStudents = [...allStudents].filter(st => {
-                      if (!st.approved) return false; // must be approved by admin first!
-                      
-                      if (studentSearchQuery) {
-                        const fullName = `${st.firstName || st.name} ${st.lastName || ''}`.toLowerCase();
-                        if (!fullName.includes(studentSearchQuery.toLowerCase()) && !(st.email || '').toLowerCase().includes(studentSearchQuery.toLowerCase())) {
-                          return false;
-                        }
-                      }
-                      
-                      if (determinedLevel) {
-                        const stLvl = (st.level || '').toUpperCase();
-                        let isMatch = false;
-                        if (determinedLevel === 'BEGINNER' && (stLvl.includes('BEGINNER') || stLvl.includes('مبتدئة'))) isMatch = true;
-                        if (determinedLevel === 'INTERMEDIATE' && (stLvl.includes('INTERMEDIATE') || stLvl.includes('تمهيدية') || stLvl.includes('متوسطة'))) isMatch = true;
-                        if (determinedLevel === 'ADVANCED' && (stLvl.includes('ADVANCED') || stLvl.includes('متقدمة'))) isMatch = true;
-                    // TAMKEEN check option removed
-                        return isMatch;
-                      }
-                      
-                      return true;
-                    });
-
-                    // Level arrangement order helper
-                    const getLvlOrder = (l: string) => {
-                      const cleanOption = (l || '').toUpperCase();
-                      if (cleanOption.includes('BEGINNER') || cleanOption.includes('مبتدئة')) return 1;
-                      if (cleanOption.includes('INTERMEDIATE') || cleanOption.includes('تمهيدية') || cleanOption.includes('متوسطة')) return 2;
-                      if (cleanOption.includes('ADVANCED') || cleanOption.includes('متقدمة')) return 3;
-                      if (cleanOption.includes('TAMKEEN') || cleanOption.includes('تمكين')) return 2;
-                      return 5;
-                    };
-
-                    const sortedEligible = eligibleStudents.sort((a, b) => getLvlOrder(a.level) - getLvlOrder(b.level));
-
-                    if (sortedEligible.length === 0) {
-                      return (
-                        <p className="text-xs text-slate-400 font-bold italic text-center py-4">
-                          {lang === 'ar' ? 'لا توجد طالبات مؤهلات مطابقة للمستوى أو البحث المحدد.' : 'No qualified students match the locked level or search term.'}
-                        </p>
-                      );
-                    }
-
-                    return sortedEligible.map((st) => {
-                      const stKey = st.studentId || st.email || st.name;
-                      const isChecked = sessSelectedStudentIds.includes(stKey);
-                      const levelCode = (st.level || '').toUpperCase();
-                      
-                      let optionColorClass = 'border-slate-150 bg-slate-50 text-slate-700 hover:bg-slate-100';
-                      let lvlTitle = st.level;
-                      
-                      if (levelCode.includes('BEGINNER') || levelCode.includes('مبتدئة')) {
-                        optionColorClass = 'border-emerald-150 bg-emerald-50/70 text-emerald-950 hover:bg-emerald-100/70';
-                        lvlTitle = lang === 'ar' ? 'مبتدئة' : 'Beginner';
-                      } else if (levelCode.includes('INTERMEDIATE') || levelCode.includes('تمهيدية') || levelCode.includes('متوسطة')) {
-                        optionColorClass = 'border-amber-150 bg-amber-50/70 text-amber-950 hover:bg-amber-100/70';
-                        lvlTitle = lang === 'ar' ? 'تمهيدية / متوسطة' : 'Intermediate';
-                      } else if (levelCode.includes('ADVANCED') || levelCode.includes('متقدمة')) {
-                        optionColorClass = 'border-indigo-150 bg-indigo-50/70 text-indigo-950 hover:bg-indigo-100/70';
-                        lvlTitle = lang === 'ar' ? 'متقدمة' : 'Advanced';
-                      } else if (levelCode.includes('TAMKEEN') || levelCode.includes('تمكين')) {
-                        optionColorClass = 'border-amber-150 bg-amber-50/70 text-amber-950 hover:bg-amber-100/70';
-                        lvlTitle = lang === 'ar' ? 'تمهيدية / متوسطة' : 'Intermediate';
-                      }
-
-                      return (
-                        <div
-                          key={stKey}
-                          onClick={() => {
-                            if (isChecked) {
-                              setSessSelectedStudentIds(prev => prev.filter(id => id !== stKey));
-                            } else {
-                              setSessSelectedStudentIds(prev => [...prev, stKey]);
-                            }
-                          }}
-                          className={`p-2.5 rounded-xl border flex justify-between items-center cursor-pointer transition-all ${optionColorClass} ${
-                            isChecked ? 'ring-2 ring-brand-primary border-brand-primary' : ''
-                          }`}
-                        >
-                          <div className="flex flex-col items-start gap-0.5">
-                            <span className="text-xs font-black">{getPreciseFullName(st)}</span>
-                            <div className="flex gap-2 text-[9px] font-bold text-slate-500 font-mono">
-                              <span>🆔 {st.studentId || '---'}</span>
-                              <span>🏫 {st.college || '---'}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <span className="text-[9px] bg-white text-brand-dark px-2 py-0.5 rounded-md border border-slate-200 font-black">
-                              {lvlTitle}
-                            </span>
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              readOnly
-                              className="w-4 h-4 text-brand-primary border-gray-300 rounded focus:ring-brand-primary"
-                            />
-                          </div>
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
-              </div>
-            </div>
-
-            {/* Submission Actions */}
-            <div className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-6 border-t border-gray-150 mt-4">
-              {editingDraftId && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingDraftId(null);
-                    setSessTeacherEmail('');
-                    setSessTimeSlot('');
-                    setSessLocation('');
-                    setSessSelectedStudentIds([]);
-                    setSessFormat('person');
-                    setStudentSearchQuery('');
-                  }}
-                  className="px-5 py-2.5 border border-slate-205 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-50 w-full sm:w-auto cursor-pointer"
-                >
-                  {lang === 'ar' ? 'إلغاء التعديل' : 'Cancel Edit'}
-                </button>
-              )}
-              
-              <button
-                type="submit"
-                className="bg-brand-primary hover:bg-brand-accent text-white px-7 py-3 rounded-xl text-xs font-black shadow-md flex items-center justify-center gap-1.5 transition-all w-full sm:w-auto cursor-pointer"
-              >
-                <CheckCircle className="w-4 h-4" />
-                <span>
-                  {editingDraftId 
-                    ? (lang === 'ar' ? 'حفظ وتحديث المقرأة الآن ✓' : 'Save & Update Circle ✓') 
-                    : (lang === 'ar' ? 'اعتماد وإشهار حلقة التلاوة ✓' : 'Launch New Recitation Circle ✓')}
-                </span>
-              </button>
-            </div>
-
-          </form>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setSubView('semesters')}
+              className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-gray-700 rounded-2xl text-xs font-black border border-gray-200 flex items-center gap-2 cursor-pointer transition-all self-stretch md:self-auto justify-center"
+            >
+              <Send className="w-4.5 h-4.5 rotate-180 text-gray-500" />
+              <span>{tLabel('رجوع لقائمة الفصول', 'Go Back to Semesters')}</span>
+            </button>
+          </div>
         </div>
 
-        {/* Dynamic Teacher details card modal overlay */}
-        {selectedTeacherDetails && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in/70">
-            <div className="bg-white rounded-3xl border border-brand-primary/10 shadow-2xl max-w-md w-full overflow-hidden text-start">
-              <div className="bg-brand-primary p-6 text-white">
-                <h3 className="text-lg font-black">{lang === 'ar' ? 'بطاقة تفاصيل المعلمة' : 'Teacher Profile Card'}</h3>
-                <p className="text-xs text-white/80 font-bold mt-1">{getPreciseFullName(selectedTeacherDetails)}</p>
-              </div>
-              
-              <div className="p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-xs font-bold text-gray-500">
-                  <div>
-                    <span className="text-slate-400 font-black block uppercase text-[9px]">{lang === 'ar' ? 'الاسم الأول' : 'First Name'}</span>
-                    <span className="text-brand-dark">{selectedTeacherDetails.firstName || '---'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-black block uppercase text-[9px]">{lang === 'ar' ? 'العائلة' : 'Last Name'}</span>
-                    <span className="text-brand-dark">{selectedTeacherDetails.lastName || '---'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-black block uppercase text-[9px]">{lang === 'ar' ? 'الرقم الوظيفي' : 'Employee ID'}</span>
-                    <span className="text-brand-dark">{selectedTeacherDetails.employeeId || '---'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-black block uppercase text-[9px]">{lang === 'ar' ? 'الكلية' : 'College'}</span>
-                    <span className="text-brand-dark">{selectedTeacherDetails.college || '---'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-black block uppercase text-[9px]">{lang === 'ar' ? 'الهاتف' : 'Phone'}</span>
-                    <span className="text-brand-dark">{selectedTeacherDetails.phone || '---'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-black block uppercase text-[9px]">{lang === 'ar' ? 'البريد الإلكتروني' : 'Email'}</span>
-                    <span className="text-brand-dark font-mono text-[10px]">{selectedTeacherDetails.email || '---'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-black block uppercase text-[10px]">{lang === 'ar' ? 'مستوى الاعتماد' : 'Certification'}</span>
-                    <span className="text-brand-dark bg-slate-100 px-2 py-0.5 rounded-md font-extrabold">{selectedTeacherDetails.level || 'مجازة'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-black block uppercase text-[10px]">{lang === 'ar' ? 'الحالة والنشاط' : 'Status'}</span>
-                    <span className={`px-2 py-0.5 rounded-md font-extrabold ${selectedTeacherDetails.approved ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                      {selectedTeacherDetails.approved ? (lang === 'ar' ? 'نشطة معتمدة ✓' : 'Active Approved ✓') : (lang === 'ar' ? 'تحت المراجعة ⏳' : 'Pending ⏳')}
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <span className="text-slate-400 font-black block uppercase text-[9px] mb-2">{lang === 'ar' ? 'الجدول الزمني ومواعيد التفرغ:' : 'Timetable Vacation Preferences:'}</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {getTeacherAvailableTimes(selectedTeacherDetails).map(timeKey => (
-                      <span key={timeKey} className="text-[10px] bg-brand-primary/10 text-brand-primary px-2.5 py-1 rounded-lg font-bold">
-                        {formatTimingKey(timeKey, lang)}
-                      </span>
-                    ))}
-                    {getTeacherAvailableTimes(selectedTeacherDetails).length === 0 && (
-                      <span className="text-[10px] bg-slate-100 text-slate-400 italic px-2 py-1 rounded-lg">
-                        {lang === 'ar' ? 'لا يوجد مواعيد مسجلة حالياً' : 'No vacant times listed'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 text-end">
-                <button
-                  type="button"
-                  onClick={() => setSelectedTeacherDetails(null)}
-                  className="px-5 py-2 bg-brand-dark hover:bg-brand-dark/95 text-white font-extrabold text-xs rounded-xl transition-all cursor-pointer"
-                >
-                  {lang === 'ar' ? 'إغلاق التفاصيل' : 'Close Details'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Existing Active Sessions Dashboard */}
-        <h3 className="text-base sm:text-lg font-black text-brand-dark mb-4 text-start">
-          {lang === 'ar' ? 'مقرآت وحلقات التلاوة الحالية' : 'Active Registered Sessions'} ({sessions.length})
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-start">
-          {sessions.map((sess) => {
-            return (
-              <div 
-                key={sess.id} 
-                className="bg-white rounded-3xl border border-brand-primary/10 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
-              >
-                {/* Session Header Banner styling */}
-                <div 
-                  className="p-5 text-white"
-                  style={{ backgroundColor: sess.themeColor || '#059669' }}
-                >
-                  <div className="flex justify-between items-start">
-                    <span className="text-[10px] bg-white/20 text-white font-black px-2.5 py-0.5 rounded-md backdrop-blur-xs uppercase">
-                      {sess.level}
-                    </span>
-                    <span className="text-[10px] text-white/85 font-mono">ID: {sess.id}</span>
-                  </div>
-                  <h4 className="text-base sm:text-lg font-black text-white mt-3 truncate">{sess.name}</h4>
-                  <div className="text-xs text-white/90 font-bold block mt-1">👩‍🏫 {sess.teacher?.name}</div>
-                </div>
-
-                {/* Session Details body */}
-                <div className="p-5 space-y-3 flex-1">
-                  <div className="text-xs font-bold text-gray-500 space-y-1">
-                    <div className="flex items-center gap-1.5">
-                      <span>📍</span>
-                      <span className="truncate">{sess.location}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span>⏰</span>
-                      <span className="truncate">{sess.time}</span>
-                    </div>
-                  </div>
-
-                  {/* Registered student count layout - removing student capacity bar */}
-                  <div className="flex justify-between items-center bg-slate-50 p-2.5 rounded-xl border border-slate-150">
-                    <span className="text-[10px] sm:text-xs font-black text-slate-500">
-                      👥 {lang === 'ar' ? 'عدد الطالبات المسجلات:' : 'Enrolled Students:'}
-                    </span>
-                    <span className="text-xs font-extrabold text-brand-primary bg-brand-primary/10 px-3 py-1 rounded-lg">
-                      {sess.students?.length || 0}
-                    </span>
-                  </div>
-
-                  {/* Enrolled Students segment list expansion */}
-                  {sess.students && sess.students.length > 0 ? (
-                    <div className="mt-4 border-t border-gray-100 pt-3">
-                      <span className="text-[10px] font-black text-slate-400 block uppercase mb-1">
-                        👥 {lang === 'ar' ? 'الطالبات المسجلات بالحلقة:' : 'Enrolled Students:'}
-                      </span>
-                      <div className="max-h-24 overflow-y-auto space-y-1.5 pr-1 font-mono text-[9px]">
-                        {sess.students.map((st, sidx) => (
-                          <div key={sidx} className="flex justify-between items-center bg-slate-50 p-1.5 rounded-lg border border-slate-100">
-                            <span className="font-sans font-bold text-slate-700">{st.name}</span>
-                            <span className="text-slate-400 text-[8px]">{st.college || '---'}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-4 border-t border-gray-100 pt-3 text-center">
-                      <span className="text-[10px] font-bold text-slate-400 italic block">
-                        {lang === 'ar' ? 'لا توجد طالبات مسجلات بعد' : 'No students enrolled yet'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Session Card footer action buttons */}
-                <div className="px-5 py-4 border-t border-slate-50 bg-slate-50/50 flex gap-2 justify-end">
-                  <button
-                    onClick={() => handleEditSessionTrigger(sess)}
-                    className="p-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold cursor-pointer transition-colors"
-                    title={lang === 'ar' ? 'تعديل تفاصيل الحلقة' : 'Edit Session'}
-                  >
-                    <Sparkles className="w-4 h-4 text-amber-500" />
-                    <span>{lang === 'ar' ? 'تعديل' : 'Edit'}</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleDeleteSession(sess.id)}
-                    className="p-2 border border-red-100 bg-white hover:bg-red-50 text-red-600 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold cursor-pointer transition-colors"
-                    title={lang === 'ar' ? 'حذف الحلقة بالكامل' : 'Delete Session'}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span>{lang === 'ar' ? 'حذف' : 'Delete'}</span>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+        {/* Selected Workspace Component */}
+        <div className="bg-white rounded-3xl border border-slate-150 p-6 shadow-sm transition-all duration-300">
+          <AssignmentDashboard
+            sessions={sessions}
+            setSessions={setSessions}
+            allStudents={allStudents}
+            setAllStudents={setAllStudents}
+            allTeachers={allTeachers}
+            setAllTeachers={setAllTeachers}
+            lang={lang}
+            t={t}
+            onBack={() => setSubView('semesters')}
+          />
         </div>
       </div>
     );
-  };
+  }
 
   if (subView === 'semesters') {
     const isAr = lang === 'ar';
@@ -1336,23 +787,13 @@ export default function ControlPanel({
 
                         <button
                           onClick={() => {
-                            if (activeAllocationSemesterId === sem.id) {
-                              setActiveAllocationSemesterId(null);
-                            } else {
-                              setActiveAllocationSemesterId(sem.id);
-                              setAssignMethod('automated');
-                            }
+                            setActiveAllocationSemesterId(sem.id);
+                            setAssignMethod('automated');
+                            setSubView('assignments');
                           }}
-                          className={`px-4 py-2.5 rounded-xl text-xs font-black shadow-sm cursor-pointer transition-all duration-200 ${
-                            activeAllocationSemesterId === sem.id
-                              ? 'bg-amber-600 hover:bg-amber-700 text-white animate-pulse'
-                              : 'bg-brand-primary hover:bg-brand-accent text-white'
-                          }`}
+                          className="px-4 py-2.5 bg-brand-primary hover:bg-brand-accent text-white rounded-xl text-xs font-black shadow-sm cursor-pointer transition-all duration-200"
                         >
-                          🎯 {activeAllocationSemesterId === sem.id 
-                            ? tLabel('إخفاء لوحة التوزيع والفرز', 'Hide Allocation Studio')
-                            : tLabel('أداة الفرز والتوزيع للحلقات', 'Run Session Allocator Tool')
-                          }
+                          🎯 {tLabel('أداة الفرز والتوزيع للحلقات', 'Run Session Allocator Tool')}
                         </button>
 
                         <button
@@ -1391,76 +832,6 @@ export default function ControlPanel({
                         </p>
                       </div>
                     </div>
-
-                    {activeAllocationSemesterId === sem.id && (
-                      <div className="mt-6 pt-6 border-t border-slate-200 animate-fade-in space-y-6">
-                        <div className="bg-slate-100/50 p-6 rounded-3xl border border-brand-primary/10">
-                          
-                          {/* Studio Header */}
-                          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
-                            <div>
-                              <h5 className="text-sm sm:text-base font-black text-brand-dark flex items-center gap-2 text-start">
-                                <span className="w-2.5 h-2.5 rounded-full bg-brand-primary block animate-pulse"></span>
-                                <span>
-                                  {tLabel(`أداة توزيع الطالبات على الحلقات لهذا الفصل: ${sem.title}`, `Allocation Tool for Semester: ${sem.title}`)}
-                                </span>
-                              </h5>
-                              <p className="text-[10.5px] text-slate-400 font-bold block mt-0.5 text-start">
-                                {tLabel('التسكين التلقائي والموزع الذكي للطالبات، أو تفويجهن وتعديل المقارئ يدوياً وبصورة دقيقة.', 'Assign student enrollments automatically or build customized recitation circles manually with full capacity audits.')}
-                              </p>
-                            </div>
-
-                            {/* Method Selector Tabs */}
-                            <div className="bg-white p-1 rounded-xl border border-slate-200 flex gap-1 font-bold text-xs shadow-xs w-fit">
-                              <button
-                                type="button"
-                                onClick={() => setAssignMethod('automated')}
-                                className={`px-4 py-2 rounded-lg transition-all cursor-pointer ${
-                                  assignMethod === 'automated'
-                                    ? 'bg-brand-primary text-white font-extrabold shadow-sm'
-                                    : 'text-gray-500 hover:text-brand-primary'
-                                }`}
-                              >
-                                🔮 {tLabel('١. الفرز الإلكتروني التلقائي', '1. Automated Intelligent')}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setAssignMethod('manual')}
-                                className={`px-4 py-2 rounded-lg transition-all cursor-pointer ${
-                                  assignMethod === 'manual'
-                                    ? 'bg-brand-primary text-white font-extrabold shadow-sm'
-                                    : 'text-gray-500 hover:text-brand-primary'
-                                }`}
-                              >
-                                ✍️ {tLabel('٢. الفرز والتحرير اليدوي للحلقات', '2. Manual Circles Designer')}
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Selected Method Panel */}
-                          {assignMethod === 'automated' ? (
-                            <div className="bg-white rounded-2xl border border-slate-150 p-5 shadow-xs">
-                              <AssignmentDashboard
-                                sessions={sessions}
-                                setSessions={setSessions}
-                                allStudents={allStudents}
-                                setAllStudents={setAllStudents}
-                                allTeachers={allTeachers}
-                                setAllTeachers={setAllTeachers}
-                                lang={lang}
-                                t={t}
-                                onBack={() => setActiveAllocationSemesterId(null)}
-                              />
-                            </div>
-                          ) : (
-                            <div className="bg-white rounded-2xl border border-slate-150 p-5 shadow-xs">
-                              {renderManualWorkspace()}
-                            </div>
-                          )}
-
-                        </div>
-                      </div>
-                    )}
                   </div>
                 );
               })}
