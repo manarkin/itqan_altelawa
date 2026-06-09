@@ -81,11 +81,45 @@ export interface Session {
   time: string;
   students: SessionStudent[];
   maxStudents: number;
-  level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'TAMKEEN';
+  level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   announcements: Announcement[];
   themeColor?: string;
   themePhoto?: string;
   isPast?: boolean;
+}
+
+export interface SemesterRegistration {
+  id: string;
+  firstName: string;
+  lastName: string;
+  role: Role;
+  email: string;
+  phone?: string;
+  college?: string;
+  cohort?: string;
+  level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  timings: Record<string, 'selected' | 'online' | 'person' | undefined>;
+  studentType?: 'undergrad' | 'postgrad';
+  isLastSemester?: boolean;
+  notes?: string;
+  approved: boolean;
+  registrationDate: string;
+}
+
+export interface Semester {
+  id: string;
+  title: string;
+  description: string;
+  importantNotes: string;
+  rules: string;
+  announcementTime: string; // ISO format
+  stopRegistration: boolean;
+  stopRegistrationTime?: string; // ISO format
+  sessions?: Session[];
+  registrations?: {
+    students: SemesterRegistration[];
+    teachers: any[];
+  };
 }
 
 export interface LeaderboardEntry {
@@ -99,7 +133,7 @@ export interface LeaderboardEntry {
 export interface SessionRequest {
   id: string;
   name: string;
-  level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'TAMKEEN';
+  level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   date: string;
 }
 

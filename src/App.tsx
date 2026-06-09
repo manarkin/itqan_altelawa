@@ -6,7 +6,8 @@ import {
   SessionRequest, 
   AdminStats, 
   GlobalStudent, 
-  GlobalTeacher 
+  GlobalTeacher,
+  Semester 
 } from './types';
 import { 
   initialAnnouncements,
@@ -69,6 +70,28 @@ export default function App() {
   });
 
   const [showExamResults, setShowExamResults] = useState(false);
+
+  // New state added for semester management:
+  const [semesters, setSemesters] = useState<Semester[]>(() => {
+    const cached = localStorage.getItem('itqan_semesters');
+    if (cached) return JSON.parse(cached);
+    return [
+      {
+        id: 'fall_2026',
+        title: 'الفصل الدراسي لخريف ٢٠٢٦ - نادي إتقان بجامعة السلطان قابوس',
+        description: 'يسر نادي إتقان لتجويد وتحفيظ القرآن الكريم بجامعة السلطان قابوس الإعلان عن فتح باب رصد التوقيتات وتأكيد رغبات الجدول لكل الطالبات في المستويات للتسميع والحصر.',
+        importantNotes: 'يرجى مواءمة خانات الوقت بدقة مع جدول محاضراتك الأكاديمي والعمل بالقنوات المناسبة لحلقاتك.',
+        rules: 'الالتزام التام بالموعد المحدد للحلقات والمسارات، وضوابط الغياب بعذر مقبول بحد أقصى مرتين بالترم الدراسي.',
+        announcementTime: '2026-05-01T08:00:00.000Z',
+        stopRegistration: false,
+        stopRegistrationTime: '2026-09-15T23:59:00.000Z'
+      }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('itqan_semesters', JSON.stringify(semesters));
+  }, [semesters]);
 
   // Dynamic user data lists for admin and register coordination
   const [allStudents, setAllStudents] = useState<any[]>(() => {
@@ -364,15 +387,29 @@ export default function App() {
     setCurrentView('home');
   };
 
-  const submitEnrollRequest = (details?: any) => {
+  const submitEnrollRequest = (details?: any, semesterId?: string) => {
     // Submit student join request successfully
     if (user) {
+      const updatedDetails = { ...details, semesterId };
       setUser(prev => {
         if (!prev) return null;
-        const updated = { ...prev, isEnrolled: true, enrollmentDetails: details };
+        const updated = { ...prev, isEnrolled: true, enrollmentDetails: updatedDetails };
         localStorage.setItem('itqan_user', JSON.stringify(updated));
         return updated;
       });
+
+      // Also ensure that the admin observes actual timing coordinates in directory collection
+      if (user.role === 'TEACHER') {
+        setAllTeachers(prev => {
+          const arr = prev.map(t => t.email === user.email ? { ...t, isEnrolled: true, enrollmentDetails: updatedDetails } : t);
+          return arr;
+        });
+      } else {
+        setAllStudents(prev => {
+          const arr = prev.map(s => s.email === user.email ? { ...s, isEnrolled: true, enrollmentDetails: updatedDetails } : s);
+          return arr;
+        });
+      }
     }
   };
 
@@ -396,6 +433,7 @@ export default function App() {
             viewExamResults={viewExamResults}
             setUser={setUser}
             t={t}
+            semesters={semesters}
           />
         );
       case 'login':
@@ -458,6 +496,8 @@ export default function App() {
             setAllTeachers={setAllTeachers}
             lang={lang}
             t={t}
+            semesters={semesters}
+            onUpdateSemesters={setSemesters}
           />
         );
       case 'profile':

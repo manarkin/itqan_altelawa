@@ -5,7 +5,8 @@ import {
   SessionRequest, 
   AdminStats, 
   GlobalStudent, 
-  GlobalTeacher 
+  GlobalTeacher,
+  Semester
 } from '../types';
 import AssignmentDashboard from './AssignmentWizard/AssignmentDashboard';
 import { 
@@ -46,9 +47,11 @@ interface ControlPanelProps {
   setAllTeachers: React.Dispatch<React.SetStateAction<any[]>>;
   lang: 'ar' | 'en';
   t: () => any;
+  semesters?: Semester[];
+  onUpdateSemesters?: React.Dispatch<React.SetStateAction<Semester[]>>;
 }
 
-type AdminSubView = 'default' | 'students' | 'teachers' | 'sessions' | 'assignments';
+type AdminSubView = 'default' | 'students' | 'teachers' | 'sessions' | 'assignments' | 'semesters';
 
 export default function ControlPanel({
   user,
@@ -64,7 +67,9 @@ export default function ControlPanel({
   setAllStudents,
   setAllTeachers,
   lang,
-  t
+  t,
+  semesters = [],
+  onUpdateSemesters
 }: ControlPanelProps) {
   const [subView, setSubView] = useState<AdminSubView>('default');
 
@@ -85,13 +90,33 @@ export default function ControlPanel({
   const [sessMaxStudents, setSessMaxStudents] = useState(15);
   const [sessSelectedStudents, setSessSelectedStudents] = useState<string[]>([]);
   const [sessColor, setSessColor] = useState('#059669');
-  const [sessLevel, setSessLevel] = useState<'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'TAMKEEN'>('BEGINNER');
+  const [sessLevel, setSessLevel] = useState<'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'>('BEGINNER');
 
   // New state hooks added for requirements:
   const [sessFormat, setSessFormat] = useState<'online' | 'person'>('person');
   const [sessSelectedStudentIds, setSessSelectedStudentIds] = useState<string[]>([]);
   const [selectedTeacherDetails, setSelectedTeacherDetails] = useState<any | null>(null);
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
+
+  // New semester creation stats states:
+  const [showAddSemesterForm, setShowAddSemesterForm] = useState(false);
+  const [semTitle, setSemTitle] = useState('');
+  const [semDesc, setSemDesc] = useState('');
+  const [semNotes, setSemNotes] = useState('');
+  const [semRules, setSemRules] = useState('');
+  const [semAnnounceTime, setSemAnnounceTime] = useState(() => {
+    return new Date().toISOString().slice(0, 16);
+  });
+  const [semStopRegTime, setSemStopRegTime] = useState(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + 21);
+    return date.toISOString().slice(0, 16);
+  });
+  const [semStopRegManual, setSemStopRegManual] = useState(false);
+
+  // New state hooks for active semester allocation:
+  const [activeAllocationSemesterId, setActiveAllocationSemesterId] = useState<string | null>(null);
+  const [assignMethod, setAssignMethod] = useState<'automated' | 'manual'>('automated');
 
   // Helper to retrieve timing preferences
   const getTeacherAvailableTimes = (teacher: any) => {
@@ -132,9 +157,8 @@ export default function ControlPanel({
     
     const lvl = (stud.level || '').toUpperCase();
     if (lvl.includes('BEGINNER') || lvl.includes('مبتدئة')) return 'BEGINNER';
-    if (lvl.includes('INTERMEDIATE') || lvl.includes('تمهيدية') || lvl.includes('متوسطة')) return 'INTERMEDIATE';
+    if (lvl.includes('INTERMEDIATE') || lvl.includes('تمهيدية') || lvl.includes('متوسطة') || lvl.includes('TAMKEEN') || lvl.includes('تمكين')) return 'INTERMEDIATE';
     if (lvl.includes('ADVANCED') || lvl.includes('متقدمة')) return 'ADVANCED';
-    if (lvl.includes('TAMKEEN') || lvl.includes('تمكين')) return 'TAMKEEN';
     return null;
   };
 
@@ -370,6 +394,20 @@ export default function ControlPanel({
     setEditForm({ ...userItem });
   };
 
+  const handleToggleTeacherAdmin = (email: string) => {
+    setAllTeachers(prev => prev.map(t => {
+      if (t.email === email) {
+        const nextRole = t.role === 'ADMIN' ? 'TEACHER' : 'ADMIN';
+        alert(lang === 'ar' 
+          ? `تم تحديث الصلاحية بنجاح! الدور الحالي: ${nextRole === 'ADMIN' ? 'مشرفة إدارية (Admin)' : 'معلمة تلاوة (Teacher)'}`
+          : `Role updated successfully! Active role: ${nextRole}`
+        );
+        return { ...t, role: nextRole };
+      }
+      return t;
+    }));
+  };
+
   const handleSaveUser = (role: 'STUDENT' | 'TEACHER') => {
     if (!editForm) return;
 
@@ -416,7 +454,7 @@ export default function ControlPanel({
         return 'متقدمة';
       case 'TAMKEEN':
       case 'تمكين':
-        return 'تمكين';
+        return 'تمهيدية';
       default: return lvl || 'غير مصنفة';
     }
   };
@@ -428,40 +466,9 @@ export default function ControlPanel({
     return item.name || '---';
   };
 
-  if (subView === 'sessions') {
+  const renderManualWorkspace = () => {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8">
-          <div>
-            <h2 className="text-2xl sm:text-3.5xl font-black text-brand-dark text-start">
-              {lang === 'ar' ? 'إدارة حلقـات تلاوة الإتقـان' : 'Manage Recitation Circles'}
-            </h2>
-            <p className="text-xs text-slate-400 font-bold text-start mt-1">
-              {lang === 'ar' 
-                ? 'إنشاء وتعديل الحلقات الفعالة، تعيين المعلمات المشرفات وتحديد القاعات في جامعة السلطان قابوس والمواعيد والحد الأقصى للطالبات.'
-                : 'Create and update active recitation sessions, assign supervisors, set campus classrooms, times, and student capacity.'}
-            </p>
-          </div>
-          <button 
-            className="px-5 py-2.5 border-2 border-brand-primary/40 text-brand-primary rounded-xl font-bold bg-white text-xs hover:bg-brand-neutral/50 transition-colors uppercase cursor-pointer text-start"
-            onClick={() => {
-              setSubView('default');
-              setEditingDraftId(null);
-              // Reset edit fields
-              setSessName('');
-              setSessTeacherEmail('');
-              setSessTimeSlot('');
-              setSessLocation('');
-              setSessMaxStudents(15);
-              setSessColor('#059669');
-              setSessLevel('BEGINNER');
-            }}
-          >
-            {t().backToPanel}
-          </button>
-        </div>
-
+      <div className="space-y-6 text-start">
         {/* Create/Edit Session Card Form */}
         <div className="bg-white rounded-3xl border border-brand-primary/10 shadow-sm p-6 mb-8 text-start relative">
           <h3 className="text-sm sm:text-base font-black text-brand-dark mb-4 pb-2 border-b border-gray-150 flex items-center gap-2">
@@ -678,7 +685,7 @@ export default function ControlPanel({
                     } else if (levelCode.includes('ADVANCED') || levelCode.includes('متقدمة')) {
                       bgCol = 'bg-indigo-50 text-indigo-850 border-indigo-205';
                     } else if (levelCode.includes('TAMKEEN') || levelCode.includes('تمكين')) {
-                      bgCol = 'bg-rose-50 text-rose-850 border-rose-205';
+                      bgCol = 'bg-amber-50 text-amber-850 border-amber-205';
                     }
 
                     return (
@@ -711,7 +718,7 @@ export default function ControlPanel({
                     if (determinedLevel === 'BEGINNER') levelLabel = 'مبتدئة';
                     if (determinedLevel === 'INTERMEDIATE') levelLabel = 'تمهيدية / متوسطة';
                     if (determinedLevel === 'ADVANCED') levelLabel = 'متقدمة';
-                    if (determinedLevel === 'TAMKEEN') levelLabel = 'تمكين';
+                    // TAMKEEN classification removed
                   }
                   return (
                     <div className="flex items-center gap-2 p-3 bg-brand-primary/5 text-brand-primary rounded-xl border border-brand-primary/15 text-xs font-black animate-fade-in">
@@ -757,7 +764,7 @@ export default function ControlPanel({
                         if (determinedLevel === 'BEGINNER' && (stLvl.includes('BEGINNER') || stLvl.includes('مبتدئة'))) isMatch = true;
                         if (determinedLevel === 'INTERMEDIATE' && (stLvl.includes('INTERMEDIATE') || stLvl.includes('تمهيدية') || stLvl.includes('متوسطة'))) isMatch = true;
                         if (determinedLevel === 'ADVANCED' && (stLvl.includes('ADVANCED') || stLvl.includes('متقدمة'))) isMatch = true;
-                        if (determinedLevel === 'TAMKEEN' && (stLvl.includes('TAMKEEN') || stLvl.includes('تمكين'))) isMatch = true;
+                    // TAMKEEN check option removed
                         return isMatch;
                       }
                       
@@ -770,7 +777,7 @@ export default function ControlPanel({
                       if (cleanOption.includes('BEGINNER') || cleanOption.includes('مبتدئة')) return 1;
                       if (cleanOption.includes('INTERMEDIATE') || cleanOption.includes('تمهيدية') || cleanOption.includes('متوسطة')) return 2;
                       if (cleanOption.includes('ADVANCED') || cleanOption.includes('متقدمة')) return 3;
-                      if (cleanOption.includes('TAMKEEN') || cleanOption.includes('تمكين')) return 4;
+                      if (cleanOption.includes('TAMKEEN') || cleanOption.includes('تمكين')) return 2;
                       return 5;
                     };
 
@@ -802,8 +809,8 @@ export default function ControlPanel({
                         optionColorClass = 'border-indigo-150 bg-indigo-50/70 text-indigo-950 hover:bg-indigo-100/70';
                         lvlTitle = lang === 'ar' ? 'متقدمة' : 'Advanced';
                       } else if (levelCode.includes('TAMKEEN') || levelCode.includes('تمكين')) {
-                        optionColorClass = 'border-rose-150 bg-rose-50/70 text-rose-950 hover:bg-rose-100/70';
-                        lvlTitle = lang === 'ar' ? 'تمكين' : 'Tamkeen';
+                        optionColorClass = 'border-amber-150 bg-amber-50/70 text-amber-950 hover:bg-amber-100/70';
+                        lvlTitle = lang === 'ar' ? 'تمهيدية / متوسطة' : 'Intermediate';
                       }
 
                       return (
@@ -1060,21 +1067,407 @@ export default function ControlPanel({
         </div>
       </div>
     );
-  }
+  };
 
-  if (subView === 'assignments') {
+  if (subView === 'semesters') {
+    const isAr = lang === 'ar';
+    const tLabel = (ar: string, en: string) => isAr ? ar : en;
+
+    const handleCreateSemester = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!semTitle.trim()) {
+        alert(tLabel('يرجى كتابة عنوان للفصل الدراسي الجديد!', 'Please provide a title for the new semester!'));
+        return;
+      }
+
+      const newSem: Semester = {
+        id: 'sem_' + Date.now(),
+        title: semTitle,
+        description: semDesc,
+        importantNotes: semNotes,
+        rules: semRules,
+        announcementTime: new Date(semAnnounceTime).toISOString(),
+        stopRegistration: semStopRegManual,
+        stopRegistrationTime: semStopRegTime ? new Date(semStopRegTime).toISOString() : undefined
+      };
+
+      if (onUpdateSemesters) {
+        onUpdateSemesters(prev => [...prev, newSem]);
+      }
+      
+      // Reset fields
+      setSemTitle('');
+      setSemDesc('');
+      setSemNotes('');
+      setSemRules('');
+      setSemStopRegManual(false);
+      setShowAddSemesterForm(false);
+
+      alert(tLabel('تم إنشاء الفصل الدراسي الجديد بنجاح وبدء جدول التقديم!', 'The new semester registration calendar has been initiated successfully!'));
+    };
+
+    const handleToggleRegistration = (id: string) => {
+      if (onUpdateSemesters) {
+        onUpdateSemesters(prev => prev.map(sem => 
+          sem.id === id ? { ...sem, stopRegistration: !sem.stopRegistration } : sem
+        ));
+      }
+    };
+
+    const handleDeleteSemester = (id: string) => {
+      if (window.confirm(tLabel('هل أنت متأكد من حذف هذا الفصل الدراسي نهائياً؟', 'Are you sure you want to delete this semester permanently?'))) {
+        if (onUpdateSemesters) {
+          onUpdateSemesters(prev => prev.filter(sem => sem.id !== id));
+        }
+      }
+    };
+
     return (
-      <AssignmentDashboard
-        sessions={sessions}
-        setSessions={setSessions}
-        allStudents={allStudents}
-        setAllStudents={setAllStudents}
-        allTeachers={allTeachers}
-        setAllTeachers={setAllTeachers}
-        lang={lang}
-        t={t}
-        onBack={() => setSubView('default')}
-      />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 text-start">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8">
+          <div>
+            <h2 className="text-2xl sm:text-3.5xl font-black text-brand-dark">
+              {tLabel('إدارة الفصول وفترات الاستقبال 📅', 'Semesters & Intake Configurations 📅')}
+            </h2>
+            <p className="text-xs text-slate-400 font-bold mt-1">
+              {tLabel('أنشئ فصولاً دراسية جديدة، حدد مواعيد الإعلانات والمطابخ الزمنية الآلية، وتتبع رغبات الطالبات.', 'Deploy custom semesters, announce registration criteria, schedule automatic cutoffs and configure assignments.')}
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setShowAddSemesterForm(!showAddSemesterForm);
+              }}
+              className="px-5 py-3 bg-brand-primary hover:bg-brand-accent text-white rounded-2xl text-xs font-black shadow-md flex items-center gap-2 cursor-pointer transition-all duration-200 hover:-translate-y-0.5"
+            >
+              <PlusCircle className="w-4.5 h-4.5" />
+              <span>{tLabel('إضافة فصل جديد ✦', 'Add New Semester ✦')}</span>
+            </button>
+            <button
+              onClick={() => setSubView('default')}
+              className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-gray-700 rounded-2xl text-xs font-black border border-gray-200 flex items-center gap-2 cursor-pointer"
+            >
+              <Send className="w-4.5 h-4.5 rotate-180" />
+              <span>{tLabel('رجوع للملخص', 'Go Back')}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Creation Form */}
+        {showAddSemesterForm && (
+          <form onSubmit={handleCreateSemester} className="bg-white rounded-3xl border border-brand-primary/15 shadow-xl p-6 sm:p-8 mb-8 mt-4 animate-fade-in relative space-y-5">
+            <h3 className="text-base sm:text-lg font-black text-brand-dark flex items-center gap-2 border-b pb-3 border-gray-100">
+              <span>📝</span>
+              <span>{tLabel('تفاصيل وضوابط الفصل الدراسي الجديد', 'Add New Academic Semester Details')}</span>
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-brand-dark block">{tLabel('عنوان الفصل والتقديم (مثال: فصل خريف ٢٦):', 'Semester Title (e.g., Fall 2026 Intake):')}</label>
+                <input
+                  type="text"
+                  required
+                  value={semTitle}
+                  onChange={e => setSemTitle(e.target.value)}
+                  placeholder={tLabel('أدخلي العنوان...', 'Enter semester title...')}
+                  className="w-full bg-slate-50 border border-gray-150 rounded-xl px-4 py-3 text-xs sm:text-sm font-bold placeholder-gray-300 focus:outline-none focus:border-brand-primary"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-brand-dark block">{tLabel('توقيت الإعلان ونشره بالرئيسية (تاريخ البدء):', 'Announcement Activation Publish Time (Start):')}</label>
+                <input
+                  type="datetime-local"
+                  required
+                  value={semAnnounceTime}
+                  onChange={e => setSemAnnounceTime(e.target.value)}
+                  className="w-full bg-slate-50 border border-gray-150 rounded-xl px-4 py-3 text-xs sm:text-sm font-bold font-mono focus:outline-none focus:border-brand-primary"
+                />
+              </div>
+
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-xs font-black text-brand-dark block">{tLabel('وصف الفصل والغرض العام (يظهر في واجهة الطالبة):', 'Semester General Description (Appears to user):')}</label>
+                <textarea
+                  rows={2}
+                  value={semDesc}
+                  onChange={e => setSemDesc(e.target.value)}
+                  placeholder={tLabel('اكتبي وصفاً للترحيب وأهداف الحلقات...', 'Enter welcome text and general objective details...')}
+                  className="w-full bg-slate-50 border border-gray-150 rounded-xl px-4 py-3 text-xs sm:text-sm font-bold placeholder-gray-300 focus:outline-none focus:border-brand-primary"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-brand-dark block">{tLabel('ملاحظات تخصصية مهمة (تنزل بالبطاقة):', 'Important Pedagogical Notes:')}</label>
+                <textarea
+                  rows={2}
+                  value={semNotes}
+                  onChange={e => setSemNotes(e.target.value)}
+                  placeholder={tLabel('مثال: مواءمة الساعات مع جدول محاضرات البكالوريوس...', 'e.g. Fit hours with SQU undergrad lecture tables...')}
+                  className="w-full bg-slate-50 border border-gray-150 rounded-xl px-4 py-3 text-xs sm:text-sm font-bold placeholder-gray-300 focus:outline-none focus:border-brand-primary"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-brand-dark block">{tLabel('الضوابط والقواعد والسياسات العامة:', 'Rules & Class Attendance Policies:')}</label>
+                <textarea
+                  rows={2}
+                  value={semRules}
+                  onChange={e => setSemRules(e.target.value)}
+                  placeholder={tLabel('مثال: ضابط الغياب بحد أقصى مرتين لتثبيت الأجزاء وتلافي الحذف...', 'e.g. Maximum excused absences is set to 2 to maintain seat allotment...')}
+                  className="w-full bg-slate-50 border border-gray-150 rounded-xl px-4 py-3 text-xs sm:text-sm font-bold placeholder-gray-300 focus:outline-none focus:border-brand-primary"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-brand-dark block">{tLabel('التوقيت التلقائي لإيقاف التسجيل (سقف الموعد النهائي):', 'Automatic Stop Registration Deadline (Official cut-off point):')}</label>
+                <input
+                  type="datetime-local"
+                  value={semStopRegTime}
+                  onChange={e => setSemStopRegTime(e.target.value)}
+                  className="w-full bg-slate-50 border border-gray-150 rounded-xl px-4 py-3 text-xs sm:text-sm font-bold font-mono focus:outline-none focus:border-brand-primary"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-6">
+                <input
+                  id="stop_reg_manual_chk"
+                  type="checkbox"
+                  checked={semStopRegManual}
+                  onChange={e => setSemStopRegManual(e.target.checked)}
+                  className="w-5 h-5 accent-brand-primary cursor-pointer rounded"
+                />
+                <label htmlFor="stop_reg_manual_chk" className="text-xs font-black text-rose-700 cursor-pointer select-none">
+                  🛑 {tLabel('إيقاف استقبال الرغبات والتقديم يدوياً فوراً', 'Manually stop enrollments and lock timeline inputs immediately')}
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setShowAddSemesterForm(false)}
+                className="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-black border cursor-pointer"
+              >
+                {tLabel('إلغاء', 'Cancel')}
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-3 bg-brand-primary hover:bg-brand-accent text-white rounded-xl text-xs font-black shadow-md cursor-pointer"
+              >
+                {tLabel('نشر وإعلان الفصل الدراسي الجديد ✦', 'Publish & Launch New Semester ✦')}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Semesters List */}
+        <div className="bg-white rounded-3xl border border-brand-primary/10 shadow-sm p-6">
+          <h3 className="text-base sm:text-lg font-black text-brand-dark mb-6 flex items-center gap-2">
+            <span>📅</span>
+            <span>{tLabel('الفصول المطلقة والمجدولة بالنادي', 'Active & Scheduled Semesters Log')}</span>
+          </h3>
+
+          {semesters.length === 0 ? (
+            <div className="py-16 text-center border border-dashed rounded-2xl bg-gray-50 flex flex-col items-center">
+              <Calendar className="w-12 h-12 text-gray-300 mb-3" />
+              <p className="text-gray-400 font-bold mb-0">{tLabel('لم يتم تسجيل أي فصول دراسية، اضغطي على زر "إضافة فصل جديد" للبدء.', 'No semesters registered yet. Click "Add New Semester" to initiate custom slots.')}</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {semesters.map((sem, index) => {
+                const now = new Date();
+                const isAnnounced = new Date(sem.announcementTime) <= now;
+                const isClosed = sem.stopRegistration || (sem.stopRegistrationTime && new Date(sem.stopRegistrationTime) <= now);
+
+                let statusBadge = (
+                  <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-extrabold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
+                    {tLabel('نشط ويستقبل الطلبات', 'Live & Open')}
+                  </span>
+                );
+
+                if (!isAnnounced) {
+                  statusBadge = (
+                    <span className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-[10px] font-extrabold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                      {tLabel('انتظار موعد الإعلان المجدول', 'Scheduled Future Release')}
+                    </span>
+                  );
+                } else if (isClosed) {
+                  statusBadge = (
+                    <span className="bg-rose-50 text-rose-700 px-3 py-1 rounded-full text-[10px] font-extrabold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-rose-500 rounded-full" />
+                      {tLabel('مغلق ومكتمل التقديم', 'Intake Stopped / Closed')}
+                    </span>
+                  );
+                }
+
+                return (
+                  <div key={sem.id} className="border border-gray-150 rounded-2xl p-5 hover:border-brand-primary/20 transition-all text-start relative bg-slate-50/50">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4 mb-4">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                          <span className="text-xs font-mono bg-brand-primary/10 text-brand-primary px-2.5 py-0.5 rounded-md font-extrabold">
+                            #{sem.id}
+                          </span>
+                          {statusBadge}
+                        </div>
+                        <h4 className="text-base sm:text-lg font-black text-brand-dark">
+                          {sem.title}
+                        </h4>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => handleToggleRegistration(sem.id)}
+                          className={`px-4 py-2.5 rounded-xl text-xs font-extrabold cursor-pointer border transition-all duration-200 ${
+                            sem.stopRegistration 
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                              : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                          }`}
+                        >
+                          {sem.stopRegistration 
+                            ? tLabel('تفعيل استقبال التسجيل', 'Re-open Registration')
+                            : tLabel('إيقاف استقبال التسجيل 🛑', 'Stop Registration 🛑')
+                          }
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            if (activeAllocationSemesterId === sem.id) {
+                              setActiveAllocationSemesterId(null);
+                            } else {
+                              setActiveAllocationSemesterId(sem.id);
+                              setAssignMethod('automated');
+                            }
+                          }}
+                          className={`px-4 py-2.5 rounded-xl text-xs font-black shadow-sm cursor-pointer transition-all duration-200 ${
+                            activeAllocationSemesterId === sem.id
+                              ? 'bg-amber-600 hover:bg-amber-700 text-white animate-pulse'
+                              : 'bg-brand-primary hover:bg-brand-accent text-white'
+                          }`}
+                        >
+                          🎯 {activeAllocationSemesterId === sem.id 
+                            ? tLabel('إخفاء لوحة التوزيع والفرز', 'Hide Allocation Studio')
+                            : tLabel('أداة الفرز والتوزيع للحلقات', 'Run Session Allocator Tool')
+                          }
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteSemester(sem.id)}
+                          className="p-2.5 bg-white hover:bg-rose-50 border border-gray-200 hover:border-rose-150 text-rose-600 rounded-xl cursor-pointer"
+                          title={tLabel('حذف', 'Delete')}
+                        >
+                          <Trash2 className="w-4.5 h-4.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="text-xs sm:text-sm text-gray-500 font-bold mb-4 leading-relaxed">
+                      {sem.description}
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+                      <div className="bg-white p-3 rounded-xl border border-gray-150">
+                        <span className="text-gray-400 font-bold block mb-1">{tLabel('تاريخ الإعلان ونشره:', 'Release Time:')}</span>
+                        <span className="text-brand-dark font-black block font-mono">
+                          {new Date(sem.announcementTime).toLocaleString(isAr ? 'ar-OM' : 'en-US')}
+                        </span>
+                      </div>
+
+                      <div className="bg-white p-3 rounded-xl border border-gray-150">
+                        <span className="text-gray-400 font-bold block mb-1">{tLabel('الموعد النهائي التلقائي:', 'Automated Lock:')}</span>
+                        <span className="text-rose-600 font-black block font-mono">
+                          {sem.stopRegistrationTime ? new Date(sem.stopRegistrationTime).toLocaleString(isAr ? 'ar-OM' : 'en-US') : tLabel('توقيت يدوي بمفتاح', 'Locked Manually')}
+                        </span>
+                      </div>
+
+                      <div className="bg-white p-3 rounded-xl border border-gray-150 md:col-span-2">
+                        <span className="text-gray-400 font-bold block mb-1">{tLabel('ملاحظات والضوابط بالبطاقة:', 'Rules Display Preview:')}</span>
+                        <p className="text-brand-dark font-bold leading-normal truncate mb-0" title={sem.rules}>
+                          {sem.rules || tLabel('لا توجد شروط خاصة مدمجة.', 'No core guidelines configured.')}
+                        </p>
+                      </div>
+                    </div>
+
+                    {activeAllocationSemesterId === sem.id && (
+                      <div className="mt-6 pt-6 border-t border-slate-200 animate-fade-in space-y-6">
+                        <div className="bg-slate-100/50 p-6 rounded-3xl border border-brand-primary/10">
+                          
+                          {/* Studio Header */}
+                          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+                            <div>
+                              <h5 className="text-sm sm:text-base font-black text-brand-dark flex items-center gap-2 text-start">
+                                <span className="w-2.5 h-2.5 rounded-full bg-brand-primary block animate-pulse"></span>
+                                <span>
+                                  {tLabel(`أداة توزيع الطالبات على الحلقات لهذا الفصل: ${sem.title}`, `Allocation Tool for Semester: ${sem.title}`)}
+                                </span>
+                              </h5>
+                              <p className="text-[10.5px] text-slate-400 font-bold block mt-0.5 text-start">
+                                {tLabel('التسكين التلقائي والموزع الذكي للطالبات، أو تفويجهن وتعديل المقارئ يدوياً وبصورة دقيقة.', 'Assign student enrollments automatically or build customized recitation circles manually with full capacity audits.')}
+                              </p>
+                            </div>
+
+                            {/* Method Selector Tabs */}
+                            <div className="bg-white p-1 rounded-xl border border-slate-200 flex gap-1 font-bold text-xs shadow-xs w-fit">
+                              <button
+                                type="button"
+                                onClick={() => setAssignMethod('automated')}
+                                className={`px-4 py-2 rounded-lg transition-all cursor-pointer ${
+                                  assignMethod === 'automated'
+                                    ? 'bg-brand-primary text-white font-extrabold shadow-sm'
+                                    : 'text-gray-500 hover:text-brand-primary'
+                                }`}
+                              >
+                                🔮 {tLabel('١. الفرز الإلكتروني التلقائي', '1. Automated Intelligent')}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setAssignMethod('manual')}
+                                className={`px-4 py-2 rounded-lg transition-all cursor-pointer ${
+                                  assignMethod === 'manual'
+                                    ? 'bg-brand-primary text-white font-extrabold shadow-sm'
+                                    : 'text-gray-500 hover:text-brand-primary'
+                                }`}
+                              >
+                                ✍️ {tLabel('٢. الفرز والتحرير اليدوي للحلقات', '2. Manual Circles Designer')}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Selected Method Panel */}
+                          {assignMethod === 'automated' ? (
+                            <div className="bg-white rounded-2xl border border-slate-150 p-5 shadow-xs">
+                              <AssignmentDashboard
+                                sessions={sessions}
+                                setSessions={setSessions}
+                                allStudents={allStudents}
+                                setAllStudents={setAllStudents}
+                                allTeachers={allTeachers}
+                                setAllTeachers={setAllTeachers}
+                                lang={lang}
+                                t={t}
+                                onBack={() => setActiveAllocationSemesterId(null)}
+                              />
+                            </div>
+                          ) : (
+                            <div className="bg-white rounded-2xl border border-slate-150 p-5 shadow-xs">
+                              {renderManualWorkspace()}
+                            </div>
+                          )}
+
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
     );
   }
 
@@ -1489,7 +1882,7 @@ export default function ControlPanel({
                               <option value="مبتدئة">{lang === 'ar' ? 'مبتدئة' : 'Beginner'}</option>
                               <option value="تمهيدية">{lang === 'ar' ? 'تمهيدية' : 'Introductory'}</option>
                               <option value="متقدمة">{lang === 'ar' ? 'متقدمة' : 'Advanced'}</option>
-                              <option value="تمكين">{lang === 'ar' ? 'تمكين' : 'Tamkeen'}</option>
+
                             </select>
                           </div>
                         </div>
@@ -1669,7 +2062,36 @@ export default function ControlPanel({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <div className="flex flex-col items-end shrink-0 select-none">
+                        {teach.role === 'ADMIN' ? (
+                          <span className="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-md border border-amber-600 font-black block">
+                            👑 {lang === 'ar' ? 'مشرفة إدارية' : 'Admin Coordinator'}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md border border-slate-200 font-extrabold block">
+                            {lang === 'ar' ? 'معلمة تلاوة' : 'Teacher'}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleTeacherAdmin(teach.email);
+                          }}
+                          className={`text-[9px] px-2 py-1 rounded-md font-black block mt-1 transition-all cursor-pointer border hover:scale-102 active:scale-95 select-none ${
+                            teach.role === 'ADMIN'
+                              ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
+                              : 'bg-amber-50 text-amber-650 border-amber-200 hover:bg-amber-100'
+                          }`}
+                        >
+                          {teach.role === 'ADMIN'
+                            ? (lang === 'ar' ? 'إخطار كمعلمة كلاسيكية' : 'Set as Simple Mentor')
+                            : (lang === 'ar' ? 'ترقية لمشرفة نظام 🔑' : 'Promote to Admin 🔑')
+                          }
+                        </button>
+                      </div>
+
                       <div className="text-end hidden sm:block">
                         <small className="text-slate-400 block text-[10px] font-black uppercase tracking-wider">
                           {lang === 'ar' ? 'الصفة / الترخيص' : 'Role'}
@@ -1763,13 +2185,13 @@ export default function ControlPanel({
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <div>
                             <label className="text-xs font-black text-slate-400 block mb-1">{lang === 'ar' ? 'الكلية' : 'College'}</label>
                             <select 
-                              value={editForm.college || ''}
-                              onChange={(e) => setEditForm({ ...editForm, college: e.target.value })}
-                              className="w-full bg-slate-50 border border-slate-200 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/5 focus:outline-none rounded-xl px-3 py-2 text-xs font-bold text-start"
+                                value={editForm.college || ''}
+                                onChange={(e) => setEditForm({ ...editForm, college: e.target.value })}
+                                className="w-full bg-slate-50 border border-slate-200 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/5 focus:outline-none rounded-xl px-3 py-2 text-xs font-bold text-start"
                             >
                               <option value="">{lang === 'ar' ? '-- اختاري الكلية --' : '-- Select SQU College --'}</option>
                               <option value="العلوم الزراعية والبحرية">العلوم الزراعية والبحرية (Agri)</option>
@@ -1794,6 +2216,18 @@ export default function ControlPanel({
                             >
                               <option value="مجازة">{lang === 'ar' ? 'مجازة' : 'Certified / Mujazah'}</option>
                               <option value="طالبة اقراء">{lang === 'ar' ? 'طالبة اقراء' : 'Iqraa Student'}</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-black text-slate-500 block mb-1">👑 {lang === 'ar' ? 'صلاحية وإشراف النظام' : 'System Account Role'}</label>
+                            <select
+                              value={editForm.role || 'TEACHER'}
+                              onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                              className="w-full bg-slate-50 border border-brand-primary/30 focus:border-brand-primary focus:outline-none rounded-xl px-3 py-2 text-xs font-black text-brand-primary text-start"
+                            >
+                              <option value="TEACHER">{lang === 'ar' ? 'معلمة تلاوة (Teacher)' : 'Recitation Teacher'}</option>
+                              <option value="ADMIN">{lang === 'ar' ? 'مشرفة إدارية (Admin)' : 'Admin Coordinator'}</option>
                             </select>
                           </div>
                         </div>
@@ -1838,180 +2272,94 @@ export default function ControlPanel({
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-      <h2 className="text-2xl sm:text-4xl font-black text-brand-dark mb-8 text-start">
-        {t().adminControlPanel}
-      </h2>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 text-start select-none">
+      
+      {/* Visual Header */}
+      <div className="mb-8 border-b border-gray-100 pb-5">
+        <span className="text-[10px] bg-brand-primary/10 text-brand-primary font-black px-2.5 py-1 rounded-md uppercase tracking-wider block w-fit mb-2">
+          SQU Administrative Panel • جامعة السلطان قابوس
+        </span>
+        <h2 className="text-2xl sm:text-4xl font-black text-brand-dark">
+          {t().adminControlPanel}
+        </h2>
+        <p className="text-gray-400 text-xs font-bold block mt-1">
+          {lang === 'ar'
+            ? 'بوابة ضبط حسابات النظام، معلمات التلاوة والمقرأة، وإعداد الفصول الفعالة والتسكين الذكي.'
+            : 'SQU System Portal: configure member registries, manage recitation supervisors, set semesters, and run placement allocations.'
+          }
+        </p>
+      </div>
 
-      {/* Grid Stats Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 select-none">
+      {/* Two Modular Tools Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        {/* Total Students card */}
-        <div 
-          className="bg-brand-primary/[0.03] p-6 rounded-3xl border border-brand-primary/15 shadow-sm hover:scale-103 cursor-pointer transition-all duration-300 flex flex-col items-center sm:items-start text-center sm:text-start"
-          onClick={() => setSubView('students')}
-        >
-          <div className="bg-white p-3 rounded-2xl shadow-sm text-brand-primary mb-4 w-fit">
-            <Users className="w-6 h-6" />
-          </div>
-          <h3 className="text-3xl font-black text-brand-dark mb-1">{adminStats.totalStudents}</h3>
-          <p className="text-gray-400 text-xs font-black block uppercase tracking-wider">{t().studentList}</p>
-        </div>
-
-        {/* Total Teachers card */}
-        <div 
-          className="bg-brand-primary/[0.03] p-6 rounded-3xl border border-brand-primary/15 shadow-sm hover:scale-103 cursor-pointer transition-all duration-300 flex flex-col items-center sm:items-start text-center sm:text-start"
-          onClick={() => setSubView('teachers')}
-        >
-          <div className="bg-white p-3 rounded-2xl shadow-sm text-amber-500 mb-4 w-fit">
-            <BookOpen className="w-6 h-6" />
-          </div>
-          <h3 className="text-3xl font-black text-brand-dark mb-1">{adminStats.totalTeachers}</h3>
-          <p className="text-gray-400 text-xs font-black block uppercase tracking-wider">{t().teacher}</p>
-        </div>
-
-        {/* Sessions card */}
-        <div 
-          className="bg-brand-primary/[0.03] p-6 rounded-3xl border border-brand-primary/15 shadow-sm hover:scale-103 cursor-pointer transition-all duration-300 flex flex-col items-center sm:items-start text-center sm:text-start"
-          onClick={() => setSubView('sessions')}
-        >
-          <div className="bg-white p-3 rounded-2xl shadow-sm text-emerald-500 mb-4 w-fit">
-            <Layers className="w-6 h-6" />
-          </div>
-          <h3 className="text-3xl font-black text-brand-dark mb-1">{adminStats.totalSessions}</h3>
-          <p className="text-gray-400 text-xs font-black block uppercase tracking-wider">{t().totalSessions}</p>
-        </div>
-
-        {/* Requests box card */}
-        <div className="bg-brand-primary p-6 rounded-3xl shadow-lg flex flex-col items-center sm:items-start text-center sm:text-start text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 pointer-events-none opacity-5">
-            <Inbox className="w-24 h-24" />
-          </div>
-          <div className="bg-white/10 p-3 rounded-2xl text-white mb-4 w-fit">
-            <Inbox className="w-6 h-6" />
-          </div>
-          <h3 className="text-3xl font-black text-white mb-1">{adminStats.pendingRequests}</h3>
-          <p className="text-white/70 text-xs font-black block uppercase tracking-wider">{t().requests}</p>
-        </div>
-      </div>
-
-      {/* Smart Assignment Hub Custom SQU Banner */}
-      <div className="bg-gradient-to-r from-brand-primary to-emerald-700 text-white rounded-3xl p-6 mb-8 relative overflow-hidden shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-6 text-start select-none">
-        <div className="absolute top-0 right-0 opacity-10 pointer-events-none transform translate-x-10 -translate-y-4">
-          <Sparkles className="text-white w-56 h-56" />
-        </div>
-        <div className="space-y-2 max-w-2xl">
-          <span className="text-[10px] bg-white/20 border border-white/20 px-2.5 py-0.5 rounded-md font-black uppercase tracking-widest block w-fit">
-            AI-Driven Allocation Pipeline
-          </span>
-          <h3 className="text-xl sm:text-2xl font-black">
-            {lang === 'ar' ? 'منصة التوزيع والفرز الإلكتروني المستقل' : 'Smart Assignment & Allocation Hub'}
-          </h3>
-          <p className="text-xs sm:text-sm text-white/90 font-bold leading-relaxed">
-            {lang === 'ar' 
-              ? 'توزيع طالبات البكالوريوس (حضوري) ومطابقة طالبات الدراسات العليا والموظفات (أونلاين) في مسارات مستقلة ومنع النزاعات التلقائية.'
-              : 'Sort SQU Undergraduate physical classroom spaces independently from MS Teams Postgraduate digital tracks with zero conflict overlaps.'}
-          </p>
-        </div>
-        <button
-          onClick={() => setSubView('assignments')}
-          className="bg-white hover:bg-white/95 text-brand-primary px-6 py-3.5 rounded-2xl text-xs font-black shadow-md shrink-0 transition-transform active:scale-95 flex items-center gap-1 w-full md:w-auto justify-center cursor-pointer"
-        >
-          <span>🎯 {lang === 'ar' ? 'تشغيل منصة الفرز والتوزيع الذكي' : 'Enter Assignment Dashboard'}</span>
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-start">
-        {/* Join Application queue logs (8 columns) */}
-        <div className="lg:col-span-8">
-          <div className="bg-white rounded-3xl border border-brand-primary/10 shadow-sm p-6">
-            <h4 className="text-lg sm:text-xl font-black text-brand-dark mb-5 flex items-center gap-2">
-              <UserPlus className="text-brand-primary w-5.5 h-5.5" />
-              {t().manageRequests}
-            </h4>
-
-            <div className="overflow-x-auto select-none">
-              {sessionRequests.length === 0 ? (
-                <div className="p-10 text-center flex flex-col items-center border border-dashed rounded-2xl bg-gray-50/50">
-                  <AlertCircle className="opacity-15 text-gray-400 w-12 h-12 mb-3" />
-                  <p className="text-gray-400 font-bold mb-0">No pending join requests.</p>
-                </div>
-              ) : (
-                <table className="w-full text-sm border-collapse min-w-[500px]">
-                  <thead>
-                    <tr className="border-b border-gray-100 text-gray-400 text-xs font-black uppercase text-start">
-                      <th className={`pb-3 py-2 text-start ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{t().firstName}</th>
-                      <th className="pb-3 py-2 text-center">{t().level}</th>
-                      <th className="pb-3 py-2 text-center">{t().overview}</th>
-                      <th className={`pb-3 py-2 text-end ${lang === 'ar' ? 'text-left' : 'text-right'}`}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50 font-bold select-none">
-                    {sessionRequests.map((req) => (
-                      <tr key={req.id} className="hover:bg-brand-neutral/5">
-                        <td className="py-4 text-brand-dark font-extrabold">{req.name}</td>
-                        <td className="py-4 text-center">
-                          <span className="bg-brand-neutral text-brand-primary border border-brand-primary/10 text-xs py-1 px-3 rounded-full font-mono">
-                            {req.level}
-                          </span>
-                        </td>
-                        <td className="py-4 text-center text-gray-400 font-mono text-xs">{req.date}</td>
-                        <td className="py-4 text-end">
-                          <div className={`flex items-center gap-2 ${lang === 'ar' ? 'justify-start' : 'justify-end'}`}>
-                            <button 
-                              className="px-4 py-1.5 rounded-full bg-brand-primary text-white text-xs font-black hover:bg-brand-accent transition-all cursor-pointer shadow-xs"
-                              onClick={() => handleApproveJoinRequest(req.id)}
-                            >
-                              {t().approve}
-                            </button>
-                            <button 
-                              className="px-4 py-1.5 rounded-full border border-gray-150 hover:bg-gray-50 text-gray-500 text-xs font-bold transition-all"
-                              onClick={() => handleRejectJoinRequest(req.id)}
-                            >
-                              {t().reject}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+        {/* Tool 1: Accounts Access & System Roles Manager */}
+        <div className="bg-white rounded-3xl border border-brand-primary/15 shadow-sm p-6 sm:p-8 flex flex-col justify-between hover:border-brand-primary/25 transition-all">
+          <div className="space-y-4">
+            <div className="bg-brand-primary/10 p-4 rounded-2xl text-brand-primary w-fit">
+              <Users className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="text-xl sm:text-2xl font-black text-brand-dark">
+                {lang === 'ar' ? '١. أداة إدارة حسابات مستخدمي النظام الجديد' : '1. Accounts & System Access Directory'}
+              </h3>
+              <p className="text-xs text-slate-400 font-bold leading-relaxed block mt-2">
+                {lang === 'ar'
+                  ? 'التحقق والموافقة على طلبات التسجيل الجديدة للطالبات والمعلمات، وضبط مستويات Mastery والأرقام الجامعية والوظيفية، وتعيين أو سحب صلاحيات الإدارية والمشرفة.'
+                  : 'Sift through incoming student and teacher registrants, edit academic classifications, and promote/demote administrative coordinators.'
+                }
+              </p>
             </div>
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
+            <button
+              onClick={() => setSubView('students')}
+              className="px-5 py-4 bg-brand-primary hover:bg-brand-accent text-white rounded-2xl text-xs font-black shadow-md shrink-0 transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>👥</span>
+              <span>{lang === 'ar' ? 'إدارة حسابات الطالبات' : 'Manage Students Directory'}</span>
+            </button>
+
+            <button
+              onClick={() => setSubView('teachers')}
+              className="px-5 py-4 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-xs font-black shadow-md shrink-0 transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>👩‍🏫</span>
+              <span>{lang === 'ar' ? 'إدارة حسابات المعلمات' : 'Manage Teachers Directory'}</span>
+            </button>
+          </div>
         </div>
 
-        {/* Sessions list summary side (4 columns) */}
-        <div className="lg:col-span-4 select-none">
-          <div className="bg-white rounded-3xl border border-brand-primary/10 shadow-sm p-6">
-            <div className="flex justify-between items-center mb-5">
-              <h4 className="text-lg sm:text-xl font-black text-brand-dark flex items-center gap-2">
-                <Layers className="text-amber-500 w-5.5 h-5.5" />
-                {t().sessions}
-              </h4>
-              <button 
-                onClick={() => setSubView('sessions')}
-                className="px-3 py-1.5 bg-brand-primary/10 text-brand-primary text-[10px] font-black rounded-xl hover:bg-brand-primary/25 transition-all cursor-pointer"
-              >
-                {lang === 'ar' ? 'إدارة المجموعات 🔗' : 'Manage & Edit 🔗'}
-              </button>
+        {/* Tool 2: Intakes, Semesters, and Sessions Allocation Manager */}
+        <div className="bg-white rounded-3xl border border-brand-primary/15 shadow-sm p-6 sm:p-8 flex flex-col justify-between hover:border-brand-primary/25 transition-all">
+          <div className="space-y-4">
+            <div className="bg-brand-primary/[0.03] border border-brand-primary/10 p-4 rounded-2xl text-emerald-600 w-fit">
+              <Calendar className="w-8 h-8" />
             </div>
-            <div className="flex flex-col gap-3">
-              {sessions.map((sess) => (
-                <div 
-                  key={sess.id} 
-                  className="p-4 rounded-2xl border border-gray-100 bg-gray-50/50 flex items-center justify-between"
-                >
-                  <div>
-                    <div className="font-extrabold text-brand-dark text-sm leading-snug">{sess.name}</div>
-                    <small className="text-gray-400 block font-bold leading-normal mt-0.5">{sess.teacher.name}</small>
-                  </div>
-                  <div className="bg-white px-3 py-1.5 rounded-xl text-brand-primary border border-brand-primary/10 font-bold text-xs">
-                    {sess.students.length} / {sess.maxStudents}
-                  </div>
-                </div>
-              ))}
+            <div>
+              <h3 className="text-xl sm:text-2xl font-black text-brand-dark">
+                {lang === 'ar' ? '٢. أداة تهيئة وإدارة الفصول والتسجيل' : '2. Semesters, Intakes & Session Allocation'}
+              </h3>
+              <p className="text-xs text-slate-400 font-bold leading-relaxed block mt-2">
+                {lang === 'ar'
+                  ? 'تصميم وإطلاق فصول دراسية جديدة، تنظيم فترات استقبال طلبات التسجيل للمقرأة وجدولة فترات الإغلاق، وتوزيع الطالبات آلياً وتلقائياً أو يدوياً عبر تصميم الحلقات الفرعية.'
+                  : 'Formulate academic calendar semesters, configure registration cutoff timelines, draft recitation sessions, and allocate members.'
+                }
+              </p>
             </div>
+          </div>
+
+          <div className="mt-8">
+            <button
+              onClick={() => setSubView('semesters')}
+              className="w-full px-5 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black shadow-md shrink-0 transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>📅</span>
+              <span>
+                {lang === 'ar' ? 'إدارة الفصول والتسكين والفرز والتفويج ✦' : 'Configure Calendars & Circle Allocations ✦'}
+              </span>
+            </button>
           </div>
         </div>
 

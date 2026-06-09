@@ -90,7 +90,7 @@ export default function AssignmentDashboard({
   // New Session states
   const [newSessName, setNewSessName] = useState('');
   const [newSessTeacher, setNewSessTeacher] = useState('');
-  const [newSessLevel, setNewSessLevel] = useState<'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'TAMKEEN'>('BEGINNER');
+  const [newSessLevel, setNewSessLevel] = useState<'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'>('BEGINNER');
   const [newSessTime, setNewSessTime] = useState('');
   const [newSessLocation, setNewSessLocation] = useState('');
   const [newSessFormat, setNewSessFormat] = useState<'in-person' | 'online'>('in-person');
@@ -345,17 +345,15 @@ export default function AssignmentDashboard({
     const levelGroups: Record<string, any[]> = {
       'BEGINNER': [],
       'INTERMEDIATE': [],
-      'ADVANCED': [],
-      'TAMKEEN': []
+      'ADVANCED': []
     };
 
     eligibleStudents.forEach(st => {
       const lvlStr = (st.level || '').toUpperCase();
       let matchedLvl = 'BEGINNER';
       if (lvlStr.includes('BEGINNER') || lvlStr.includes('مبتدئة')) matchedLvl = 'BEGINNER';
-      else if (lvlStr.includes('INTERMEDIATE') || lvlStr.includes('تمهيدية') || lvlStr.includes('متوسطة')) matchedLvl = 'INTERMEDIATE';
+      else if (lvlStr.includes('INTERMEDIATE') || lvlStr.includes('تمهيدية') || lvlStr.includes('متوسطة') || lvlStr.includes('TAMKEEN') || lvlStr.includes('تمكين')) matchedLvl = 'INTERMEDIATE';
       else if (lvlStr.includes('ADVANCED') || lvlStr.includes('متقدمة')) matchedLvl = 'ADVANCED';
-      else if (lvlStr.includes('TAMKEEN') || lvlStr.includes('تمكين')) matchedLvl = 'TAMKEEN';
       
       levelGroups[matchedLvl].push(st);
     });
@@ -364,7 +362,7 @@ export default function AssignmentDashboard({
     eligibleTeachers.forEach((teacher, idx) => {
       // Map level groups
       const tName = `${teacher.firstName || teacher.name} ${teacher.lastName || ''}`;
-      const levelsToFill: ('BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'TAMKEEN')[] = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'TAMKEEN'];
+      const levelsToFill: ('BEGINNER' | 'INTERMEDIATE' | 'ADVANCED')[] = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
       const targetLvl = levelsToFill[idx % levelsToFill.length];
       
       const sessionStList = levelGroups[targetLvl].splice(0, 5).map(st => ({
@@ -506,9 +504,8 @@ export default function AssignmentDashboard({
       let matchesLvl = true;
       if (studentLevelFilter !== 'all') {
         if (studentLevelFilter === 'BEGINNER') matchesLvl = stLvl.includes('BEGINNER') || stLvl.includes('مبتدئة');
-        else if (studentLevelFilter === 'INTERMEDIATE') matchesLvl = stLvl.includes('INTERMEDIATE') || stLvl.includes('تمهيدية') || stLvl.includes('متوسطة');
+        else if (studentLevelFilter === 'INTERMEDIATE') matchesLvl = stLvl.includes('INTERMEDIATE') || stLvl.includes('تمهيدية') || stLvl.includes('متوسطة') || stLvl.includes('TAMKEEN') || stLvl.includes('تمكين');
         else if (studentLevelFilter === 'ADVANCED') matchesLvl = stLvl.includes('ADVANCED') || stLvl.includes('متقدمة');
-        else if (studentLevelFilter === 'TAMKEEN') matchesLvl = stLvl.includes('TAMKEEN') || stLvl.includes('تمكين');
       }
 
       const { typeValue } = getStudentTypeAndFormat(s);
@@ -1062,7 +1059,6 @@ export default function AssignmentDashboard({
                   <option value="BEGINNER">{lang === 'ar' ? 'مبتدئة' : 'Beginner'}</option>
                   <option value="INTERMEDIATE">{lang === 'ar' ? 'تمهيدية' : 'Intermediate'}</option>
                   <option value="ADVANCED">{lang === 'ar' ? 'متقدمة' : 'Advanced'}</option>
-                  <option value="TAMKEEN">{lang === 'ar' ? 'تمكين' : 'Tamkeen'}</option>
                 </select>
 
                 <select
@@ -1495,9 +1491,8 @@ export default function AssignmentDashboard({
                         const stLvl = (stud.level || '').toUpperCase();
                         let levelMatches = false;
                         if (sLvl === 'BEGINNER' && (stLvl.includes('BEGINNER') || stLvl.includes('مبتدئة'))) levelMatches = true;
-                        else if (sLvl === 'INTERMEDIATE' && (stLvl.includes('INTERMEDIATE') || stLvl.includes('تمهيدية') || stLvl.includes('متوسطة'))) levelMatches = true;
+                        else if (sLvl === 'INTERMEDIATE' && (stLvl.includes('INTERMEDIATE') || stLvl.includes('تمهيدية') || stLvl.includes('متوسطة') || stLvl.includes('TAMKEEN') || stLvl.includes('تمكين'))) levelMatches = true;
                         else if (sLvl === 'ADVANCED' && (stLvl.includes('ADVANCED') || stLvl.includes('متقدمة'))) levelMatches = true;
-                        else if (sLvl === 'TAMKEEN' && (stLvl.includes('TAMKEEN') || stLvl.includes('تمكين'))) levelMatches = true;
                         
                         return levelMatches;
                       });
@@ -1664,7 +1659,6 @@ export default function AssignmentDashboard({
                     <option value="BEGINNER">BEGINNER</option>
                     <option value="INTERMEDIATE">INTERMEDIATE</option>
                     <option value="ADVANCED">ADVANCED</option>
-                    <option value="TAMKEEN">TAMKEEN</option>
                   </select>
                 </div>
 
