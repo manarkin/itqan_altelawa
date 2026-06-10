@@ -24,9 +24,24 @@ export default function Profile({
   // Setup options
   const STUDENT_LEVELS = [
     { key: 'مبتدئة', labelAr: 'مبتدئة', labelEn: 'Beginner' },
-    { key: 'تمهيدية', labelAr: 'تمهيدية', labelEn: 'Introductory' },
+    { key: 'تمهيدية', labelAr: 'متوسطة', labelEn: 'Intermediate' },
     { key: 'متقدمة', labelAr: 'متقدمة', labelEn: 'Advanced' }
   ];
+
+  const formatOMPhone = (val: string): string => {
+    const cleanDigits = val.replace(/\D/g, '');
+    if (cleanDigits.length === 0) return '';
+    let finalDigits = cleanDigits;
+    if (finalDigits[0] !== '9' && finalDigits[0] !== '7') {
+      finalDigits = finalDigits.slice(1);
+      return formatOMPhone(finalDigits);
+    }
+    finalDigits = finalDigits.slice(0, 8);
+    if (finalDigits.length > 4) {
+      return `${finalDigits.slice(0, 4)} ${finalDigits.slice(4)}`;
+    }
+    return finalDigits;
+  };
 
   const TEACHER_LEVELS = [
     { key: 'مجازة', labelAr: 'مجازة', labelEn: 'Certified / Mujazah' },
@@ -65,6 +80,12 @@ export default function Profile({
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const cleanPhone = phone.replace(/\s+/g, '');
+    if (cleanPhone.length !== 8) {
+      alert(tField('يجب أن يتكون رقم الهاتف من 8 أرقام تبدأ بـ 9 أو 7!', 'Phone number must be exactly 8 digits starting with 9 or 7!'));
+      return;
+    }
 
     let finalPassword = password;
     if (changePassword) {
@@ -287,8 +308,9 @@ export default function Profile({
                   <input 
                     type="tel" 
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(formatOMPhone(e.target.value))}
                     className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr font-mono"
+                    placeholder="9123 4567"
                     required 
                   />
                 </div>

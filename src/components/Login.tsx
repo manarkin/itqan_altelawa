@@ -72,7 +72,7 @@ export default function Login({
         <form onSubmit={handleSubmit} className="space-y-4 text-start">
           <div>
             <label className="text-xs font-black text-gray-400 block mb-1">
-              {tField('اسم المستخدم أو البريد الإلكتروني', 'Username or Email Address')}
+              {tField('الرقم الجامعي/الوظيفي أو البريد الإلكتروني', 'ID or Email Address')}
             </label>
             <input 
               type="text" 
@@ -80,7 +80,7 @@ export default function Login({
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
               required 
-              placeholder={tField('مثال: marya_99 أو البريد الجامعي', 'e.g. username or SQU email')}
+              placeholder={tField('مثال: الرقم الجامعي أو البريد الإلكتروني', 'e.g. your ID or registered email')}
             />
           </div>
 

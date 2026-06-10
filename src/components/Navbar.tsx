@@ -35,9 +35,6 @@ export default function Navbar({
           <div className="w-11 h-11 bg-brand-primary rounded-2xl flex items-center justify-center shadow-md shadow-brand-primary/20 hover:scale-105 active:scale-95 transition-all duration-200">
             <BookOpen className="text-white w-6 h-6" />
           </div>
-          <span className="hidden md:block text-2xl font-black text-brand-dark tracking-tight">
-            {t().title}
-          </span>
         </div>
 
 

@@ -89,6 +89,21 @@ export default function Register({
         "Nursing"
       ];
 
+  const formatOMPhone = (val: string): string => {
+    const cleanDigits = val.replace(/\D/g, '');
+    if (cleanDigits.length === 0) return '';
+    let finalDigits = cleanDigits;
+    if (finalDigits[0] !== '9' && finalDigits[0] !== '7') {
+      finalDigits = finalDigits.slice(1);
+      return formatOMPhone(finalDigits);
+    }
+    finalDigits = finalDigits.slice(0, 8);
+    if (finalDigits.length > 4) {
+      return `${finalDigits.slice(0, 4)} ${finalDigits.slice(4)}`;
+    }
+    return finalDigits;
+  };
+
   const handleCardPicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setCardPicName(e.target.files[0].name);
@@ -110,6 +125,13 @@ export default function Register({
         return;
       }
 
+      const cleanPhone = studentPhone.replace(/\s+/g, '');
+      if (cleanPhone.length !== 8) {
+        alert(tField('يجب أن يتكون رقم الهاتف من 8 أرقام تبدأ بـ 9 أو 7!', 'Phone number must be exactly 8 digits starting with 9 or 7!'));
+        return;
+      }
+
+      const finalStudentId = studentId || Math.floor(100000 + Math.random() * 900000).toString();
       const newUser = {
         firstName: studentFirstName,
         fatherName: studentFatherName,
@@ -121,9 +143,9 @@ export default function Register({
         phone: studentPhone,
         college: selectedCollege || 'OTHER',
         cohort: studentCohort || '2023',
-        studentId: studentId || 'SQU' + Math.floor(1000 + Math.random() * 9000),
+        studentId: finalStudentId,
         level: tField('غير مصنف', 'Not Categorized'),
-        username: studentUsername,
+        username: finalStudentId,
         password: studentPassword,
         avatar: 'https://picsum.photos/seed/student_new/200/200',
         cardPicName: cardPicName || 'student_id_upload.png',
@@ -134,9 +156,7 @@ export default function Register({
 
       // Save both by email and by username
       localStorage.setItem('registered_user_' + studentEmail.toLowerCase(), JSON.stringify(newUser));
-      if (studentUsername) {
-        localStorage.setItem('registered_user_' + studentUsername.toLowerCase(), JSON.stringify(newUser));
-      }
+      localStorage.setItem('registered_user_' + finalStudentId.toLowerCase(), JSON.stringify(newUser));
       if (setAllStudents) {
         setAllStudents(prev => [...prev, newUser]);
       }
@@ -149,6 +169,13 @@ export default function Register({
         return;
       }
 
+      const cleanPhone = teacherPhone.replace(/\s+/g, '');
+      if (cleanPhone.length !== 8) {
+        alert(tField('يجب أن يتكون رقم الهاتف من 8 أرقام تبدأ بـ 9 أو 7!', 'Phone number must be exactly 8 digits starting with 9 or 7!'));
+        return;
+      }
+
+      const finalTeacherId = teacherId || Math.floor(100000 + Math.random() * 900000).toString();
       const newUser = {
         firstName: teacherFirstName,
         fatherName: teacherFatherName,
@@ -160,9 +187,9 @@ export default function Register({
         phone: teacherPhone,
         college: 'Education',
         cohort: '',
-        employeeId: teacherId || 'EMP' + Math.floor(1000 + Math.random() * 9000),
+        employeeId: finalTeacherId,
         level: 'مجازة',
-        username: teacherUsername,
+        username: finalTeacherId,
         password: teacherPassword,
         avatar: 'https://picsum.photos/seed/teacher_new/200/200',
         approved: false, // starts as Not Checked
@@ -171,9 +198,7 @@ export default function Register({
 
       // Save both by email and by username
       localStorage.setItem('registered_user_' + teacherEmail.toLowerCase(), JSON.stringify(newUser));
-      if (teacherUsername) {
-        localStorage.setItem('registered_user_' + teacherUsername.toLowerCase(), JSON.stringify(newUser));
-      }
+      localStorage.setItem('registered_user_' + finalTeacherId.toLowerCase(), JSON.stringify(newUser));
       if (setAllTeachers) {
         setAllTeachers(prev => [...prev, newUser]);
       }
@@ -357,10 +382,10 @@ export default function Register({
                   <input 
                     type="tel" 
                     value={studentPhone}
-                    onChange={(e) => setStudentPhone(e.target.value)}
+                    onChange={(e) => setStudentPhone(formatOMPhone(e.target.value))}
                     className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
                     required 
-                    placeholder="+968 9123 4567"
+                    placeholder="9123 4567"
                   />
                 </div>
               </div>
@@ -376,9 +401,10 @@ export default function Register({
                   <input 
                     type="text" 
                     value={studentId}
-                    onChange={(e) => setStudentId(e.target.value)}
+                    onChange={(e) => setStudentId(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
                     required 
+                    maxLength={6}
                     placeholder={regStudentType === 'undergrad' ? '123456' : '102934'}
                   />
                 </div>
@@ -424,14 +450,23 @@ export default function Register({
                   <label className="text-xs font-black text-gray-400 block mb-1 font-bold">
                     {tField('الدفعة الأكاديمية بالجامعة (Cohort Year)', 'Cohort Year')}
                   </label>
-                  <input 
-                    type="number" 
+                  <select 
                     value={studentCohort}
                     onChange={(e) => setStudentCohort(e.target.value)}
-                    className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold font-mono text-ltr" 
+                    className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
                     required 
-                    placeholder="e.g. 2023"
-                  />
+                  >
+                    <option value="">{tField('اختر الدفعة', 'Select Cohort')}</option>
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                    <option value="2023">2023</option>
+                    <option value="2022">2022</option>
+                    <option value="2021">2021</option>
+                    <option value="2020">2020</option>
+                    <option value="2019">2019</option>
+                    <option value="2018 and before">{tField('2018 وقبل ذلك', '2018 and before')}</option>
+                  </select>
                 </div>
               )}
 
@@ -495,7 +530,7 @@ export default function Register({
               {regFirstTime === 'yes' && (
                 <div className="animate-fade-in">
                   <label className="text-xs font-black text-gray-400 block mb-1.5 font-bold">
-                    {tField('الملف الصوتي للتلاوة وتقييم المستوى (مرفق)', 'Recitation Sound Sample File')}
+                    {tField('الملف الصوتي للتلاوة وتقييم المستوى (اختياري)', 'Recitation Sound Sample File (Optional)')}
                   </label>
                   <div 
                     className="p-6 rounded-2xl border-2 border-dashed border-brand-primary/30 text-center hover:bg-brand-neutral/20 transition-all select-none cursor-pointer flex flex-col items-center"
@@ -503,7 +538,7 @@ export default function Register({
                   >
                     <Mic className="text-brand-primary w-8 h-8 mb-2 animate-pulse" />
                     <span className="text-xs font-extrabold text-brand-dark block mb-1">
-                      {voiceFileName || tField('انقري هنا لإرفاق ملف تلاوتك الصوتي الخاص بآيات قصيرة لتوزيعك على حركات الإتقان', 'Click here or drag recitation audio file to assess your placement level')}
+                      {voiceFileName || tField('انقري هنا لإرفاق ملف تلاوتك الصوتي الخاص بآيات قصيرة (اختياري)', 'Click here or drag recitation audio file (Optional)')}
                     </span>
                     <span className="text-[0.65rem] text-gray-400 font-bold block">MP3, M4A, WAV, AMR</span>
                     <input 
@@ -512,7 +547,6 @@ export default function Register({
                       className="sr-only" 
                       accept="audio/*"
                       onChange={handleVoiceFileChange}
-                      required
                     />
                   </div>
                 </div>
@@ -542,12 +576,15 @@ export default function Register({
                     <label className="text-xs font-black text-gray-400 block mb-1">
                       {tField('ما هو المستوى السابق؟', 'Prior Level Placement?')}
                     </label>
-                    <input 
-                      type="text" 
+                    <select 
                       className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-3 py-2 text-xs font-bold" 
                       required 
-                      placeholder={tField('مثال: مبتدئ، تلاوة، تمكين', 'e.g. Beginner, Tamkeen')}
-                    />
+                    >
+                      <option value="">{tField('اختر المستوى السابق', 'Select Prior Level')}</option>
+                      <option value="BEGINNER">{tField('مبتدئة (Beginner)', 'Beginner')}</option>
+                      <option value="INTERMEDIATE">{tField('متوسطة (Intermediate)', 'Intermediate')}</option>
+                      <option value="ADVANCED">{tField('متقدمة (Advanced)', 'Advanced')}</option>
+                    </select>
                   </div>
 
                   <div>
@@ -568,20 +605,7 @@ export default function Register({
                   <span>🔒</span>
                   <span>{tField('بيانات اعتماد الحساب والدخول', 'Account Security & Sign In Credentials')}</span>
                 </h6>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-xs font-black text-gray-400 block mb-1">
-                      {tField('اسم المستخدم المعين للتعريف', 'Account Username')}
-                    </label>
-                    <input 
-                      type="text" 
-                      value={studentUsername}
-                      onChange={(e) => setStudentUsername(e.target.value)}
-                      className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
-                      required 
-                      placeholder="e.g. maria_squ"
-                    />
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-black text-gray-400 block mb-1">
                       {tField('كلمة المرور', 'Account Password')}
@@ -702,10 +726,10 @@ export default function Register({
                 <input 
                   type="tel" 
                   value={teacherPhone}
-                  onChange={(e) => setTeacherPhone(e.target.value)}
+                  onChange={(e) => setTeacherPhone(formatOMPhone(e.target.value))}
                   className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
                   required 
-                  placeholder="+968 9876 5432"
+                  placeholder="9123 4567"
                 />
               </div>
               <div>
@@ -713,10 +737,11 @@ export default function Register({
                 <input 
                   type="text" 
                   value={teacherId}
-                  onChange={(e) => setTeacherId(e.target.value)}
+                  onChange={(e) => setTeacherId(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
                   required 
-                  placeholder="e.g. EMP1234"
+                  maxLength={6}
+                  placeholder="e.g. 102938"
                 />
               </div>
             </div>
@@ -739,20 +764,7 @@ export default function Register({
                 <span>🔒</span>
                 <span>{tField('بيانات اعتماد الحساب والدخول للمعلمة', 'Account Security & Sign In Credentials')}</span>
               </h6>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-xs font-black text-gray-400 block mb-1">
-                    {tField('اسم المستخدم المعين للمعلمة', 'Account Username')}
-                  </label>
-                  <input 
-                    type="text" 
-                    value={teacherUsername}
-                    onChange={(e) => setTeacherUsername(e.target.value)}
-                    className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
-                    required 
-                    placeholder="e.g. marya_misk"
-                  />
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-black text-gray-400 block mb-1">
                     {tField('كلمة المرور', 'Account Password')}

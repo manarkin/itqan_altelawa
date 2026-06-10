@@ -650,28 +650,6 @@ export default function ControlPanel({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-black text-brand-dark block">{tLabel('ملاحظات تخصصية مهمة (تنزل بالبطاقة):', 'Important Pedagogical Notes:')}</label>
-                <textarea
-                  rows={2}
-                  value={semNotes}
-                  onChange={e => setSemNotes(e.target.value)}
-                  placeholder={tLabel('مثال: مواءمة الساعات مع جدول محاضرات البكالوريوس...', 'e.g. Fit hours with SQU undergrad lecture tables...')}
-                  className="w-full bg-slate-50 border border-gray-150 rounded-xl px-4 py-3 text-xs sm:text-sm font-bold placeholder-gray-300 focus:outline-none focus:border-brand-primary"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-black text-brand-dark block">{tLabel('الضوابط والقواعد والسياسات العامة:', 'Rules & Class Attendance Policies:')}</label>
-                <textarea
-                  rows={2}
-                  value={semRules}
-                  onChange={e => setSemRules(e.target.value)}
-                  placeholder={tLabel('مثال: ضابط الغياب بحد أقصى مرتين لتثبيت الأجزاء وتلافي الحذف...', 'e.g. Maximum excused absences is set to 2 to maintain seat allotment...')}
-                  className="w-full bg-slate-50 border border-gray-150 rounded-xl px-4 py-3 text-xs sm:text-sm font-bold placeholder-gray-300 focus:outline-none focus:border-brand-primary"
-                />
-              </div>
-
-              <div className="space-y-1.5">
                 <label className="text-xs font-black text-brand-dark block">{tLabel('التوقيت التلقائي لإيقاف التسجيل (سقف الموعد النهائي):', 'Automatic Stop Registration Deadline (Official cut-off point):')}</label>
                 <input
                   type="datetime-local"
@@ -679,19 +657,6 @@ export default function ControlPanel({
                   onChange={e => setSemStopRegTime(e.target.value)}
                   className="w-full bg-slate-50 border border-gray-150 rounded-xl px-4 py-3 text-xs sm:text-sm font-bold font-mono focus:outline-none focus:border-brand-primary"
                 />
-              </div>
-
-              <div className="flex items-center gap-3 pt-6">
-                <input
-                  id="stop_reg_manual_chk"
-                  type="checkbox"
-                  checked={semStopRegManual}
-                  onChange={e => setSemStopRegManual(e.target.checked)}
-                  className="w-5 h-5 accent-brand-primary cursor-pointer rounded"
-                />
-                <label htmlFor="stop_reg_manual_chk" className="text-xs font-black text-rose-700 cursor-pointer select-none">
-                  🛑 {tLabel('إيقاف استقبال الرغبات والتقديم يدوياً فوراً', 'Manually stop enrollments and lock timeline inputs immediately')}
-                </label>
               </div>
             </div>
 
@@ -731,6 +696,9 @@ export default function ControlPanel({
                 const now = new Date();
                 const isAnnounced = new Date(sem.announcementTime) <= now;
                 const isClosed = sem.stopRegistration || (sem.stopRegistrationTime && new Date(sem.stopRegistrationTime) <= now);
+
+                const registeredStudents = allStudents.filter(s => s.isEnrolled && s.enrollmentDetails?.semesterId === sem.id).length;
+                const registeredTeachers = allTeachers.filter(t => t.isEnrolled && t.enrollmentDetails?.semesterId === sem.id).length;
 
                 let statusBadge = (
                   <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-extrabold flex items-center gap-1">
@@ -810,26 +778,66 @@ export default function ControlPanel({
                       {sem.description}
                     </p>
 
+                    {/* Statistics Counters */}
+                    <div className="flex flex-wrap gap-3 mb-5">
+                      <div className="flex items-center gap-2 bg-emerald-50 text-emerald-800 px-3.5 py-1.5 rounded-xl border border-emerald-100 text-[11px] font-black shadow-3xs">
+                        <span className="flex h-2 w-2 relative">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        <span>{tLabel(`قائمة الطالبات المسجلات: ${registeredStudents}`, `Registered Students so far: ${registeredStudents}`)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-violet-50 text-violet-800 px-3.5 py-1.5 rounded-xl border border-violet-100 text-[11px] font-black shadow-3xs">
+                        <span className="flex h-2 w-2 relative">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500"></span>
+                        </span>
+                        <span>{tLabel(`قائمة المعلمات المسجلات: ${registeredTeachers}`, `Registered Teachers so far: ${registeredTeachers}`)}</span>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
-                      <div className="bg-white p-3 rounded-xl border border-gray-150">
-                        <span className="text-gray-400 font-bold block mb-1">{tLabel('تاريخ الإعلان ونشره:', 'Release Time:')}</span>
-                        <span className="text-brand-dark font-black block font-mono">
-                          {new Date(sem.announcementTime).toLocaleString(isAr ? 'ar-OM' : 'en-US')}
-                        </span>
+                      <div className="bg-white p-3 rounded-xl border border-gray-150 flex flex-col justify-between">
+                        <div>
+                          <span className="text-gray-400 font-bold block mb-1">{tLabel('تاريخ الإعلان ونشره:', 'Release Time:')}</span>
+                          <span className="text-brand-dark font-black block font-mono">
+                            {new Date(sem.announcementTime).toLocaleString(isAr ? 'ar-OM' : 'en-US')}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="bg-white p-3 rounded-xl border border-gray-150">
-                        <span className="text-gray-400 font-bold block mb-1">{tLabel('الموعد النهائي التلقائي:', 'Automated Lock:')}</span>
-                        <span className="text-rose-600 font-black block font-mono">
-                          {sem.stopRegistrationTime ? new Date(sem.stopRegistrationTime).toLocaleString(isAr ? 'ar-OM' : 'en-US') : tLabel('توقيت يدوي بمفتاح', 'Locked Manually')}
-                        </span>
+                      <div className="bg-white p-3 rounded-xl border border-gray-150 flex flex-col justify-between">
+                        <div>
+                          <span className="text-gray-400 font-bold block mb-1">{tLabel('الموعد النهائي التلقائي:', 'Automated Lock:')}</span>
+                          <span className="text-rose-600 font-black block font-mono text-ltr">
+                            {sem.stopRegistrationTime ? new Date(sem.stopRegistrationTime).toLocaleString(isAr ? 'ar-OM' : 'en-US') : tLabel('توقيت يدوي بمفتاح', 'Locked Manually')}
+                          </span>
+                        </div>
+                        <div className="mt-3 pt-2.5 border-t border-slate-100">
+                          <label className="text-[10px] text-gray-400 font-black block mb-1">{tLabel('تعديل الموعد النهائي ✏️:', 'Change Deadline ✏️:')}</label>
+                          <input
+                            type="datetime-local"
+                            value={sem.stopRegistrationTime ? new Date(new Date(sem.stopRegistrationTime).getTime() - new Date(sem.stopRegistrationTime).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (onUpdateSemesters) {
+                                onUpdateSemesters(prev => prev.map(s => 
+                                  s.id === sem.id ? { ...s, stopRegistrationTime: val ? new Date(val).toISOString() : undefined } : s
+                                ));
+                              }
+                            }}
+                            className="w-full text-[10px] font-mono bg-slate-50 border border-gray-200 rounded-lg p-1.5 font-bold focus:outline-none focus:border-brand-primary"
+                          />
+                        </div>
                       </div>
 
-                      <div className="bg-white p-3 rounded-xl border border-gray-150 md:col-span-2">
-                        <span className="text-gray-400 font-bold block mb-1">{tLabel('ملاحظات والضوابط بالبطاقة:', 'Rules Display Preview:')}</span>
-                        <p className="text-brand-dark font-bold leading-normal truncate mb-0" title={sem.rules}>
-                          {sem.rules || tLabel('لا توجد شروط خاصة مدمجة.', 'No core guidelines configured.')}
-                        </p>
+                      <div className="bg-white p-3 rounded-xl border border-gray-150 md:col-span-2 flex flex-col justify-between">
+                        <div>
+                          <span className="text-gray-400 font-bold block mb-1">{tLabel('ملاحظات والضوابط بالبطاقة:', 'Rules Display Preview:')}</span>
+                          <p className="text-brand-dark font-bold leading-normal text-[11px] line-clamp-4" title={sem.rules}>
+                            {sem.rules || tLabel('لا توجد شروط خاصة مدمجة.', 'No core guidelines configured.')}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1201,7 +1209,8 @@ export default function ControlPanel({
                             <input 
                               type="text"
                               value={editForm.studentId || ''}
-                              onChange={(e) => setEditForm({ ...editForm, studentId: e.target.value })}
+                              onChange={(e) => setEditForm({ ...editForm, studentId: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+                              maxLength={6}
                               className="w-full bg-slate-50 border border-slate-200 focus:border-brand-primary focus:outline-none rounded-xl px-3 py-2 text-xs font-mono font-bold text-ltr"
                             />
                           </div>
@@ -1550,7 +1559,8 @@ export default function ControlPanel({
                             <input 
                               type="text"
                               value={editForm.employeeId || ''}
-                              onChange={(e) => setEditForm({ ...editForm, employeeId: e.target.value })}
+                              onChange={(e) => setEditForm({ ...editForm, employeeId: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+                              maxLength={6}
                               className="w-full bg-slate-50 border border-slate-200 focus:border-brand-primary focus:outline-none rounded-xl px-3 py-2 text-xs font-mono font-bold text-ltr"
                             />
                           </div>

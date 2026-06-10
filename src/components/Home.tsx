@@ -560,40 +560,7 @@ export default function Home({
                 {activeSem.description}
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-slate-50 rounded-2xl p-4.5 border border-slate-150 shadow-3xs text-start">
-                  <div className="flex items-center gap-2 text-brand-primary font-black text-sm mb-2">
-                    <BookOpen className="w-4.5 h-4.5 shrink-0 text-brand-primary" />
-                    <h4 className="font-extrabold">{tField('ملاحظات مهمة', 'Important Notes')}</h4>
-                  </div>
-                  <p className="text-[11px] text-gray-500 font-bold leading-relaxed">
-                    {activeSem.importantNotes}
-                  </p>
-                </div>
 
-                <div className="bg-slate-50 rounded-2xl p-4.5 border border-slate-150 shadow-3xs text-start">
-                  <div className="flex items-center gap-2 text-amber-600 font-black text-sm mb-2">
-                    <ScrollText className="w-4.5 h-4.5 shrink-0 text-amber-600" />
-                    <h4 className="font-extrabold">{tField('الضوابط والقواعد والمحاضر', 'Rules & Guidelines')}</h4>
-                  </div>
-                  <p className="text-[11px] text-gray-500 font-bold leading-relaxed">
-                    {activeSem.rules}
-                  </p>
-                </div>
-
-                <div className="bg-slate-50 rounded-2xl p-4.5 border border-slate-150 shadow-3xs text-start">
-                  <div className="flex items-center gap-2 text-emerald-600 font-black text-sm mb-2">
-                    <Calendar className="w-4.5 h-4.5 shrink-0 text-emerald-600" />
-                    <h4 className="font-extrabold">{tField('حدود إغلاق باب التقديم', 'Deadline Control')}</h4>
-                  </div>
-                  <div className="text-[11px] text-gray-500 font-bold leading-normal">
-                    <span>{tField('التوقيت الرسمي النهائي لإيقاف الترشيحات ورصد الرغبات:', 'The final official submission cutoff point is set as:')}</span>
-                    <strong className="text-emerald-700 block mt-1.5 font-mono bg-white text-center rounded-lg border p-1 font-black">
-                      {activeSem.stopRegistrationTime ? new Date(activeSem.stopRegistrationTime).toLocaleString(isAr ? 'ar-OM' : 'en-US') : tField('غير محدد', 'Not set')}
-                    </strong>
-                  </div>
-                </div>
-              </div>
 
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-100">
                 <div className="text-start">
