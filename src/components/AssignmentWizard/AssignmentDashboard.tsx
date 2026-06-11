@@ -1239,6 +1239,7 @@ export default function AssignmentDashboard({
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-400 font-black h-12 uppercase text-start">
                     <th className="px-5 text-start">{lang === 'ar' ? 'الطالبة ووسيلة الاتصال' : 'Student Name & Contact'}</th>
                     <th className="px-5 text-start">{lang === 'ar' ? 'الأوقات المتاحة المحددة' : 'Available Timings Chosen'}</th>
+                    <th className="px-5 text-center">{lang === 'ar' ? 'المستوى' : 'Level'}</th>
                     <th className="px-5 text-center">{lang === 'ar' ? 'نمط التلقي المفضل' : 'Delivery Preference'}</th>
                     <th className="px-5 text-start">{lang === 'ar' ? 'ملاحظات الطالبة' : 'Student Notes'}</th>
                     <th className="px-5 text-center">{lang === 'ar' ? 'الحالة والمقرأة الحالية' : 'Assignment State'}</th>
@@ -1281,6 +1282,24 @@ export default function AssignmentDashboard({
                           </div>
                         </td>
 
+                        <td className="px-5 text-center">
+                          {(() => {
+                            const lvlLabel = getStudentLevelDisplay(st, lang);
+                            const lvlRaw = (st.level || '').toUpperCase();
+                            let badgeStyle = "bg-amber-50 text-amber-700 border-amber-200/60"; // Beginner style
+                            if (lvlRaw.includes('INTERMED') || lvlRaw.includes('تمهيد') || lvlRaw.includes('متوسط') || lvlRaw.includes('TAMKEEN') || lvlRaw.includes('تمكين')) {
+                              badgeStyle = "bg-blue-50 text-blue-700 border-blue-200/60";
+                            } else if (lvlRaw.includes('ADVANC') || lvlRaw.includes('متقدم')) {
+                              badgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-200/60";
+                            }
+                            return (
+                              <span className={`px-3 py-1 font-extrabold rounded-full border text-[11px] inline-block shadow-3xs ${badgeStyle}`}>
+                                {lvlLabel}
+                              </span>
+                            );
+                          })()}
+                        </td>
+
                         <td className="px-5 text-center text-slate-500 font-semibold">
                           {displayPreferredFormat(st)}
                         </td>
@@ -1294,10 +1313,10 @@ export default function AssignmentDashboard({
                         <td className="px-5 text-center font-bold">
                           {assignedSession ? (
                             <span className="bg-emerald-50 text-emerald-700 border border-emerald-150 px-2 py-1 rounded-lg text-[10px] uppercase font-black">
-                              👉 {assignedSession.name}
+                              👉 {(assignedSession as Session).name}
                             </span>
                           ) : (
-                            <span className="bg-red-50 text-red-650 border border-red-100 px-2 py-1 rounded-lg text-[10px] uppercase font-black animate-pulse">
+                            <span className="bg-red-50 text-red-655 border border-red-100 px-2 py-1 rounded-lg text-[10px] uppercase font-black animate-pulse">
                               ⏳ {lang === 'ar' ? 'غير مسكنة' : 'NOT ASSIGNED'}
                             </span>
                           )}
@@ -1345,7 +1364,7 @@ export default function AssignmentDashboard({
 
                       {isExpanded && (
                         <tr className="bg-sky-50/15 border-b border-sky-100/40">
-                          <td colSpan={6} className="p-0">
+                          <td colSpan={7} className="p-0">
                             <div className="px-5 py-4 space-y-4 animate-fade-in text-start border-l-4 border-sky-500 bg-sky-50/5">
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-bold text-gray-700">
                                 
