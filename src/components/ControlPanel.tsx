@@ -49,6 +49,7 @@ interface ControlPanelProps {
   t: () => any;
   semesters?: Semester[];
   onUpdateSemesters?: React.Dispatch<React.SetStateAction<Semester[]>>;
+  navigate?: (view: string) => void;
 }
 
 type AdminSubView = 'default' | 'students' | 'teachers' | 'sessions' | 'assignments' | 'semesters';
@@ -69,7 +70,8 @@ export default function ControlPanel({
   lang,
   t,
   semesters = [],
-  onUpdateSemesters
+  onUpdateSemesters,
+  navigate
 }: ControlPanelProps) {
   const [subView, setSubView] = useState<AdminSubView>('default');
 
@@ -514,6 +516,8 @@ export default function ControlPanel({
             lang={lang}
             t={t}
             onBack={() => setSubView('semesters')}
+            setUser={setUser}
+            navigate={navigate}
           />
         </div>
       </div>
@@ -692,7 +696,7 @@ export default function ControlPanel({
             </div>
           ) : (
             <div className="space-y-6">
-              {semesters.map((sem, index) => {
+              {[...semesters].sort((a, b) => new Date(b.announcementTime || 0).getTime() - new Date(a.announcementTime || 0).getTime()).map((sem, index) => {
                 const now = new Date();
                 const isAnnounced = new Date(sem.announcementTime) <= now;
                 const isClosed = sem.stopRegistration || (sem.stopRegistrationTime && new Date(sem.stopRegistrationTime) <= now);

@@ -735,7 +735,7 @@ export default function MySession({
                     </td>
 
                     <td className="py-4 text-start font-mono text-gray-600">
-                      📱 {stud.phone || '+968 9345 6789'}
+                      <span className="inline-block" dir="ltr" style={{ direction: 'ltr', textAlign: 'start' }}>📱 {stud.phone || '+968 9345 6789'}</span>
                     </td>
 
                     <td className="py-4 text-start font-bold text-gray-500">
@@ -998,107 +998,7 @@ export default function MySession({
         </div>
       )}
 
-      {/* Award Gift Modal */}
-      {giftModalStudentId && (
-        <div className="fixed inset-0 bg-brand-dark/50 backdrop-blur-md z-[200] flex items-center justify-center p-4">
-          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-brand-primary/15 shadow-2xl w-full max-w-lg text-start">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="text-xl font-black text-brand-dark">🎁 {lang === 'ar' ? 'إرسال جائزة تشجيعية للطالبة' : 'Send Incentive Reward'}</h4>
-              <button onClick={() => setGiftModalStudentId(null)}>
-                <X className="w-6 h-6 text-gray-400 hover:text-gray-600" />
-              </button>
-            </div>
 
-            <p className="text-xs text-gray-500 font-bold mb-5 leading-normal">
-              {lang === 'ar' 
-                ? 'حددي شكل ومقدار الجائزة والرسالة التحفيزية التي ستظهر للطالبة فور فتح الصندوق بشكل تفاعلي.'
-                : 'Determine the box design, gold coins amount, and an encouragement citation message visible instantly to the student.'}
-            </p>
-
-            <form onSubmit={handleSendGift} className="space-y-4">
-              {/* Choose Gift box type with beautiful visual badges */}
-              <div>
-                <label className="text-xs font-black text-gray-400 block mb-2 font-bold">
-                  {lang === 'ar' ? 'تصميم مظهر الجائزة:' : 'Reward design style:'}
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    { type: 'box', icon: '🎁', name: lang === 'ar' ? 'علبة هدايا' : 'Giftbox' },
-                    { type: 'package', icon: '📦', name: lang === 'ar' ? 'طرد ورقي' : 'Package' },
-                    { type: 'envelope', icon: '✉️', name: lang === 'ar' ? 'مظروف' : 'Envelope' },
-                    { type: 'piggy', icon: '🐷', name: lang === 'ar' ? 'حصالة' : 'Piggybank' }
-                  ].map((item) => (
-                    <label 
-                      key={item.type} 
-                      className={`text-center p-2 rounded-xl border-2 cursor-pointer flex flex-col items-center gap-1 hover:bg-brand-neutral/20 transition-all select-none ${
-                        giftType === item.type 
-                          ? 'border-brand-primary bg-brand-primary/5' 
-                          : 'border-gray-150 bg-white'
-                      }`}
-                    >
-                      <span className="text-2xl">{item.icon}</span>
-                      <span className="text-[0.65rem] font-black">{item.name}</span>
-                      <input 
-                        type="radio" 
-                        name="giftTypeRadio" 
-                        value={item.type} 
-                        checked={giftType === item.type}
-                        onChange={() => setGiftType(item.type as any)}
-                        className="sr-only" // hide real input safely
-                      />
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-black text-gray-400 block mb-1 font-bold">
-                  {lang === 'ar' ? 'المبلغ بالعملة التشجيعية (🪙 قطعة ذهبية):' : 'Reward amount in motivation gold (🪙 coins):'}
-                </label>
-                <input 
-                  type="number" 
-                  value={giftAmount}
-                  onChange={(e) => setGiftAmount(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-2xl px-4 py-3 text-sm font-bold font-mono"
-                  min="1"
-                  max="500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-black text-gray-400 block mb-1 font-bold">
-                  {lang === 'ar' ? 'عبارة تشجيعية (Motivation Message):' : 'Encouragement Message:'}
-                </label>
-                <textarea 
-                  value={giftMessage}
-                  onChange={(e) => setGiftMessage(e.target.value)}
-                  className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-2xl p-4 text-sm font-bold"
-                  rows={2}
-                  required
-                  placeholder={lang === 'ar' ? 'تبارك الرحمن، تلاوتك متميزة هذا اليوم وعليك بالمداومة المستمرة!' : 'Amazing performance today, keep up the outstanding progress!'}
-                />
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button 
-                  type="button" 
-                  className="flex-1 bg-gray-100 text-gray-600 py-3.5 rounded-2xl text-sm font-black"
-                  onClick={() => setGiftModalStudentId(null)}
-                >
-                  {lang === 'ar' ? 'إلغاء' : 'Cancel'}
-                </button>
-                <button 
-                  type="submit" 
-                  className="flex-1 bg-brand-primary text-white py-3.5 rounded-2xl text-sm font-black hover:bg-brand-accent cursor-pointer"
-                >
-                  {lang === 'ar' ? 'إرسال 🪙' : 'Send Coins'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Student Info Profile Card Modal */}
       {activeInfoStudent && (
@@ -1132,7 +1032,7 @@ export default function MySession({
             <div className="space-y-3 mb-6">
               <div className="p-3 bg-gray-50/50 rounded-2xl border border-gray-100 text-sm">
                 <small className="text-gray-400 font-bold block mb-0.5">{lang === 'ar' ? 'رقم الهاتف والتواصل:' : 'Phone Contact:'}</small>
-                <span className="font-mono text-brand-dark font-extrabold text-ltr block">{activeInfoStudent.phone || '+968 9988 7766'}</span>
+                <span className="font-mono text-brand-dark font-extrabold block text-left" dir="ltr" style={{ direction: 'ltr', textAlign: 'start' }}>{activeInfoStudent.phone || '+968 9988 7766'}</span>
               </div>
 
               <div className="p-3 bg-gray-50/50 rounded-2xl border border-gray-100 text-sm">

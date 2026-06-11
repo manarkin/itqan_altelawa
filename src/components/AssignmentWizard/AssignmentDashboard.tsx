@@ -25,6 +25,79 @@ import {
 } from 'lucide-react';
 import { Session, User } from '../../types';
 
+// Timings utility format mapping
+const getFormattedTimings = (userTimings: any, lang: string) => {
+  if (!userTimings) return lang === 'ar' ? 'غير محدد' : 'Not specified';
+  const selectedSlots: string[] = [];
+  
+  const DAYS_MAP: Record<string, {ar: string, en: string}> = {
+    Sunday: { ar: 'الأحد', en: 'Sunday' },
+    Monday: { ar: 'الاثنين', en: 'Monday' },
+    Tuesday: { ar: 'الثلاثاء', en: 'Tuesday' },
+    Wednesday: { ar: 'الأربعاء', en: 'Wednesday' },
+    Thursday: { ar: 'الخميس', en: 'Thursday' },
+    Friday: { ar: 'الجمعة', en: 'Friday' },
+    Saturday: { ar: 'السبت', en: 'Saturday' }
+  };
+  
+  const SLOTS_MAP: Record<string, {ar: string, en: string}> = {
+    Fajr: { ar: 'فجرية', en: 'Fajr' },
+    '8:00-9:15': { ar: '٨:٠٠ - ٩:١٥ ص', en: '8:00-9:15 AM' },
+    '10:00-11:15': { ar: '١٠:٠٠ - ١١:١٥ ص', en: '10:00-11:15 AM' },
+    '12:00-1:15': { ar: '١٢:٠٠ - ١:١٥ ظ', en: '12:00-1:15 PM' },
+    '2:15-3:30': { ar: '٢:١٥ - ٣:٣٠ ظ', en: '2:15-3:30 PM' },
+    '4:15-5:30': { ar: '٤:١٥ - ٥:٣٠ ع', en: '4:15-5:30 PM' },
+    '8:00-9:15PM': { ar: '٨:٠٠ - ٩:١٥ م', en: '8:00-9:15 PM' }
+  };
+
+  Object.entries(userTimings).forEach(([key, val]) => {
+    if (val) {
+      const parts = key.split('_');
+      if (parts.length === 2) {
+        const dKey = parts[0];
+        const sKey = parts[1];
+        const dayText = DAYS_MAP[dKey] ? (lang === 'ar' ? DAYS_MAP[dKey].ar : DAYS_MAP[dKey].en) : dKey;
+        const slotText = SLOTS_MAP[sKey] ? (lang === 'ar' ? SLOTS_MAP[sKey].ar : SLOTS_MAP[sKey].en) : sKey;
+        let modeSuffix = '';
+        if (val === 'online') {
+          modeSuffix = lang === 'ar' ? ' (عن بعد)' : ' (Online)';
+        } else if (val === 'person') {
+          modeSuffix = lang === 'ar' ? ' (حضوري)' : ' (In-Person)';
+        }
+        selectedSlots.push(`${dayText}: ${slotText}${modeSuffix}`);
+      }
+    }
+  });
+
+  if (selectedSlots.length === 0) return lang === 'ar' ? 'لا توجد أوقات محددة' : 'No timings selected';
+  return selectedSlots.join(' | ');
+};
+
+// Mapping student levels
+const getStudentLevelDisplay = (st: any, lang: string) => {
+  const lvl = (st.level || '').toUpperCase();
+  if (lvl.includes('BEGIN') || lvl.includes('مبتد')) {
+    return lang === 'ar' ? 'مبتدئة' : 'Beginner';
+  } else if (lvl.includes('INTERMED') || lvl.includes('تمهيد') || lvl.includes('متوسط') || lvl.includes('TAMKEEN') || lvl.includes('تمكين')) {
+    return lang === 'ar' ? 'تمهيدية' : 'Intermediate';
+  } else if (lvl.includes('ADVANC') || lvl.includes('متقدم')) {
+    return lang === 'ar' ? 'متقدمة' : 'Advanced';
+  }
+  return st.level || (lang === 'ar' ? 'مبتدئة' : 'Beginner');
+};
+
+// Mapping teacher levels
+const getTeacherLevelDisplay = (teach: any, lang: string) => {
+  const lvl = (teach.level || '').toLowerCase();
+  if (lvl.includes('مجاز') || lvl.includes('master') || lvl.includes('certified')) {
+    return lang === 'ar' ? 'مجازة' : 'Certified (Mujazah)';
+  } else if (lvl.includes('first') || lvl.includes('أول مرة')) {
+    return lang === 'ar' ? 'أول مرة في مرحلة إقراء' : 'First time teaching in Iqraa stage';
+  } else {
+    return lang === 'ar' ? 'طالبة إقراء' : 'Iqraa';
+  }
+};
+
 interface AssignmentDashboardProps {
   sessions: Session[];
   setSessions: React.Dispatch<React.SetStateAction<Session[]>>;
@@ -35,6 +108,8 @@ interface AssignmentDashboardProps {
   lang: 'ar' | 'en';
   t: () => any;
   onBack: () => void;
+  setUser?: React.Dispatch<React.SetStateAction<any>>;
+  navigate?: (view: string) => void;
 }
 
 export default function AssignmentDashboard({
@@ -46,7 +121,9 @@ export default function AssignmentDashboard({
   setAllTeachers,
   lang,
   t,
-  onBack
+  onBack,
+  setUser,
+  navigate
 }: AssignmentDashboardProps) {
   // Navigation tabs for the Dashboard
   // 'overview' | 'students' | 'teachers' | 'sessions' | 'auto-assign' | 'conflicts'
@@ -73,6 +150,9 @@ export default function AssignmentDashboard({
   const [studentSearch, setStudentSearch] = useState('');
   const [studentLevelFilter, setStudentLevelFilter] = useState<string>('all');
   const [studentTypeFilter, setStudentTypeFilter] = useState<string>('all'); // all, undergrad, postgrad
+  const [studentTimingSearch, setStudentTimingSearch] = useState('');
+  const [selectedTimings, setSelectedTimings] = useState<string[]>([]);
+  const [timeDropdownOpen, setTimeDropdownOpen] = useState(false);
 
   const [teacherSearch, setTeacherSearch] = useState('');
   const [teacherLevelFilter, setTeacherLevelFilter] = useState<string>('all');
@@ -97,6 +177,11 @@ export default function AssignmentDashboard({
 
   // Manual fast reassignment trigger ids
   const [assigningStudentId, setAssigningStudentId] = useState<string | null>(null);
+
+  // States for detailed informational modals ("i" button)
+  const [infoModalStudent, setInfoModalStudent] = useState<any | null>(null);
+  const [infoModalTeacher, setInfoModalTeacher] = useState<any | null>(null);
+  const [expandedStudentIds, setExpandedStudentIds] = useState<string[]>([]);
 
   // Parse Student format and type helper
   const getStudentTypeAndFormat = (student: any) => {
@@ -127,10 +212,13 @@ export default function AssignmentDashboard({
   // Classify clean arabic/english display strings for SQU terms
   const displayStudentType = (student: any) => {
     const { typeValue } = getStudentTypeAndFormat(student);
-    if (lang === 'ar') {
-      return typeValue === 'undergrad' ? 'بكالوريوس' : 'دراسات عليا / موظفة';
+    if (typeValue === 'undergrad') {
+      return student.cohort || (lang === 'ar' ? 'دفعة بكالوريوس' : 'Undergrad Cohort');
     }
-    return typeValue === 'undergrad' ? 'Undergraduate' : 'Postgraduate/Employee';
+    if (lang === 'ar') {
+      return 'دراسات عليا / موظفة';
+    }
+    return 'Postgraduate/Employee';
   };
 
   const displayPreferredFormat = (student: any) => {
@@ -145,18 +233,22 @@ export default function AssignmentDashboard({
     return 'Both / Flexible';
   };
 
-  // Auto classification for Teachers
+  // Auto classification for Teachers - strictly online or in-person, never "both"
   const getTeacherPrefAndExp = (teacher: any) => {
     // Certified level dictates experience
     const levelCode = (teacher.level || '').toLowerCase();
     const isMujazah = levelCode.includes('مجاز') || levelCode.includes('teacher') || levelCode.includes('master');
     const expYears = isMujazah ? '5+ Years' : '2-4 Years';
     
-    let formatPref: 'in-person' | 'online' | 'both' = 'both';
-    if (teacher.phone?.includes('1234') || teacher.email?.includes('maryam')) {
+    let formatPref: 'in-person' | 'online' = 'online';
+    if (teacher.enrollmentDetails?.teacherFormat) {
+      formatPref = teacher.enrollmentDetails.teacherFormat === 'person' ? 'in-person' : 'online';
+    } else if (teacher.phone?.includes('1234') || teacher.email?.includes('maryam')) {
       formatPref = 'in-person';
     } else if (teacher.email?.includes('sara')) {
       formatPref = 'online';
+    } else {
+      formatPref = 'in-person';
     }
     
     return { expYears, formatPref };
@@ -324,7 +416,7 @@ export default function AssignmentDashboard({
       });
       eligibleTeachers = approvedTeachers.filter(t => {
         const { formatPref } = getTeacherPrefAndExp(t);
-        return formatPref === 'in-person' || formatPref === 'both';
+        return formatPref === 'in-person';
       });
     } else {
       // Online: Postgrads & digital-enlisted undergrards, and online teachers
@@ -334,7 +426,7 @@ export default function AssignmentDashboard({
       });
       eligibleTeachers = approvedTeachers.filter(t => {
         const { formatPref } = getTeacherPrefAndExp(t);
-        return formatPref === 'online' || formatPref === 'both';
+        return formatPref === 'online';
       });
     }
 
@@ -492,11 +584,47 @@ export default function AssignmentDashboard({
     }
   };
 
+  // helper to get beautifully formatted bint full name
+  const getBintFullName = (st: any) => {
+    let f = (st.firstName || '').trim();
+    let fa = (st.fatherName || '').trim();
+    let g = (st.grandfatherName || '').trim();
+    let l = (st.lastName || '').trim();
+
+    if (!f && st.name) {
+      const nameParts = st.name.trim().split(/\s+/);
+      if (nameParts.length >= 2) {
+        f = nameParts[0];
+        l = nameParts[nameParts.length - 1];
+        fa = 'سليمان';
+        g = 'سعيد';
+      } else {
+        f = st.name;
+      }
+    }
+
+    let parts = [f];
+    if (fa) {
+      parts.push('بنت');
+      parts.push(fa);
+    }
+    if (g) {
+      parts.push('بنت');
+      parts.push(g);
+    }
+    if (l) {
+      parts.push(l);
+    }
+    return parts.join(' ').replace(/\s+/g, ' ').trim();
+  };
+
   // Student filtering calculation page
   const processedStudents = useMemo(() => {
     return allStudents.filter(s => {
+      const bintFullName = getBintFullName(s);
       const matchesSearch = 
-        `${s.firstName || s.name} ${s.lastName || ''}`.toLowerCase().includes(studentSearch.toLowerCase()) ||
+        bintFullName.toLowerCase().includes(studentSearch.toLowerCase()) ||
+        (s.name || '').toLowerCase().includes(studentSearch.toLowerCase()) ||
         (s.studentId || '').toLowerCase().includes(studentSearch.toLowerCase()) ||
         (s.email || '').toLowerCase().includes(studentSearch.toLowerCase());
 
@@ -514,9 +642,41 @@ export default function AssignmentDashboard({
         matchesType = typeValue === studentTypeFilter;
       }
 
-      return matchesSearch && matchesLvl && matchesType;
+      const studentTimingsStr = getFormattedTimings(s.enrollmentDetails?.timings || s.timings, lang) || '';
+      
+      let matchesTiming = true;
+      if (selectedTimings.length > 0) {
+        matchesTiming = selectedTimings.some(t => {
+          if (t === 'Online') {
+            const { formatValue } = getStudentTypeAndFormat(s);
+            if (formatValue === 'online' || formatValue === 'both') return true;
+          }
+          if (t === 'In-Person') {
+            const { formatValue } = getStudentTypeAndFormat(s);
+            if (formatValue === 'in-person' || formatValue === 'both') return true;
+          }
+
+          if (t === 'Sunday') return studentTimingsStr.includes('Sunday') || studentTimingsStr.includes('الأحد');
+          if (t === 'Monday') return studentTimingsStr.includes('Monday') || studentTimingsStr.includes('الاثنين');
+          if (t === 'Tuesday') return studentTimingsStr.includes('Tuesday') || studentTimingsStr.includes('الثلاثاء');
+          if (t === 'Wednesday') return studentTimingsStr.includes('Wednesday') || studentTimingsStr.includes('الأربعاء');
+          if (t === 'Thursday') return studentTimingsStr.includes('Thursday') || studentTimingsStr.includes('الخميس');
+          
+          if (t === 'Fajr') return studentTimingsStr.toLowerCase().includes('fajr') || studentTimingsStr.includes('فجرية');
+          if (t === '8:00') return studentTimingsStr.includes('8:00') || studentTimingsStr.includes('٨:٠٠');
+          if (t === '10:00') return studentTimingsStr.includes('10:00') || studentTimingsStr.includes('١٠:٠٠');
+          if (t === '12:00') return studentTimingsStr.includes('12:00') || studentTimingsStr.includes('١٢:٠٠');
+          if (t === '2:15') return studentTimingsStr.includes('2:15') || studentTimingsStr.includes('٢:١٥');
+          if (t === '4:15') return studentTimingsStr.includes('4:15') || studentTimingsStr.includes('٤:١٥');
+          if (t === '8:00PM') return studentTimingsStr.includes('8:00-9:15 PM') || studentTimingsStr.includes('٨:٠٠ - ٩:١٥ م');
+          
+          return studentTimingsStr.toLowerCase().includes(t.toLowerCase());
+        });
+      }
+
+      return matchesSearch && matchesLvl && matchesType && matchesTiming;
     });
-  }, [allStudents, studentSearch, studentLevelFilter, studentTypeFilter]);
+  }, [allStudents, studentSearch, studentLevelFilter, studentTypeFilter, selectedTimings, lang]);
 
   // Teachers filtering calculation page
   const processedTeachers = useMemo(() => {
@@ -535,7 +695,7 @@ export default function AssignmentDashboard({
       const { formatPref } = getTeacherPrefAndExp(t);
       let matchesFormat = true;
       if (teacherFormatFilter !== 'all') {
-        matchesFormat = formatPref === teacherFormatFilter || formatPref === 'both';
+        matchesFormat = formatPref === teacherFormatFilter;
       }
 
       return matchesSearch && matchesLvl && matchesFormat;
@@ -636,9 +796,10 @@ export default function AssignmentDashboard({
         {/* VIEW 1: OVERVIEW */}
         {/* ========================================================= */}
         {activeTab === 'overview' && (
-          <div className="space-y-8 animate-fade-in">
+          <div className="space-y-8 animate-fade-in shadow-2xs">
             {/* Bento Grid Analytics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 select-none">
+              {/* Total Students Card */}
               <div 
                 onClick={() => setActiveTab('students')}
                 className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm cursor-pointer hover:border-brand-primary/40 hover:scale-102 transition-all flex flex-col justify-between"
@@ -653,6 +814,7 @@ export default function AssignmentDashboard({
                 </div>
               </div>
 
+              {/* Total Teachers Card */}
               <div 
                 onClick={() => setActiveTab('teachers')}
                 className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm cursor-pointer hover:border-brand-primary/40 hover:scale-102 transition-all flex flex-col justify-between"
@@ -663,10 +825,11 @@ export default function AssignmentDashboard({
                 </div>
                 <div>
                   <h3 className="text-3xl font-black text-brand-dark mb-1">{stats.totalT}</h3>
-                  <p className="text-xs text-slate-400 font-bold">{lang === 'ar' ? 'المعلمات المرخصات للتدريس' : 'Active Licensed Teachers'}</p>
+                  <p className="text-xs text-slate-400 font-bold">{lang === 'ar' ? 'إجمالي المعلمات المسجلات' : 'Total Active Teachers'}</p>
                 </div>
               </div>
 
+              {/* Total Sessions Card */}
               <div 
                 onClick={() => setActiveTab('sessions')}
                 className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm cursor-pointer hover:border-brand-primary/40 hover:scale-102 transition-all flex flex-col justify-between"
@@ -681,6 +844,7 @@ export default function AssignmentDashboard({
                 </div>
               </div>
 
+              {/* Unassigned Card */}
               <div 
                 onClick={() => setActiveTab('conflicts')}
                 className={`p-6 rounded-3xl border shadow-sm cursor-pointer hover:scale-102 transition-all flex flex-col justify-between ${stats.unassignedCount > 0 ? 'bg-amber-500/5 border-amber-200 text-amber-900' : 'bg-white border-slate-200/60'}`}
@@ -692,117 +856,6 @@ export default function AssignmentDashboard({
                 <div>
                   <h3 className="text-3xl font-black text-brand-dark mb-1">{stats.unassignedCount}</h3>
                   <p className="text-xs text-slate-400 font-bold">{lang === 'ar' ? 'طالبات بانتظار الترشيح لحلقات' : 'Students Awaiting Placement'}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Banner Quick Start Guidance */}
-            <div className="bg-brand-primary text-white rounded-3xl p-6 md:p-8 relative overflow-hidden shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div className="absolute top-0 right-0 opacity-5 pointer-events-none transform translate-x-12 -translate-y-4">
-                <Sparkles className="w-56 h-56" />
-              </div>
-              <div className="space-y-2 max-w-2xl text-start">
-                <span className="text-[10px] bg-white/20 px-2.5 py-0.5 rounded-md font-black uppercase tracking-wider block w-fit">Decision Engine Guidance</span>
-                <h3 className="text-lg sm:text-2xl font-black">{lang === 'ar' ? 'فرز وتوزيع مستقل وسلس للمقرآت' : 'Isolate and Run Allocations Seamlesly'}</h3>
-                <p className="text-xs sm:text-sm text-white/90 font-bold leading-relaxed">
-                  {lang === 'ar'
-                    ? 'بإمكانك فرز طالبات البكالوريوس وحضوريات مصلى الطالبات في مسار المقرأة؛ مع فرز طالبات الماجستير والدراسات العليا عن بُعد لمسار ميكروسوفت تيمز المستقل بضغطة زر وبدون تداخلات!'
-                    : 'Unleash independent algorithm parameters. Route Undergraduate physical SQU-mosque attendances onto offline groups; or match graduate and off-campus Employees onto MS Teams with isolated configurations.'}
-                </p>
-              </div>
-
-              <button
-                onClick={() => {
-                  setActiveTab('auto-assign');
-                  setAutoAssignFormat('in-person');
-                }}
-                className="bg-white hover:bg-slate-50 text-brand-primary px-6 py-3.5 rounded-xl text-xs font-black shadow-md shrink-0 transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer"
-              >
-                <span>🚀 {lang === 'ar' ? 'تشغيل الموزع الذكي الآن' : 'Unleash Smart Allocator'}</span>
-              </button>
-            </div>
-
-            {/* Quick Link Shortcuts */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-3xl border border-slate-200/60 p-6">
-                <h4 className="text-sm sm:text-base font-black text-brand-dark mb-4 border-b border-slate-100 pb-2 flex items-center gap-2">
-                  <span>📌</span> {lang === 'ar' ? 'روابط سريعة وقوالب النظام' : 'Quick Actions Shortcuts'}
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-start">
-                  <button 
-                    onClick={() => setActiveTab('auto-assign')}
-                    className="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-black border border-slate-200/40 text-slate-700 block transition-colors cursor-pointer"
-                  >
-                    🏢 {lang === 'ar' ? 'تشغيل فرز حضوري (مسارات مسجد SQU)' : 'Run In-person SQU-Mosque allocation'}
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setActiveTab('auto-assign');
-                      setAutoAssignFormat('online');
-                    }}
-                    className="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-black border border-slate-200/40 text-slate-700 block transition-colors cursor-pointer"
-                  >
-                    💻 {lang === 'ar' ? 'تشغيل فرز أونلاين (قنوات تيمز)' : 'Run Online Digital Teams allocation'}
-                  </button>
-                  <button 
-                    onClick={() => setShowCreateSessionModal(true)}
-                    className="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-black border border-slate-200/40 text-slate-700 block transition-colors cursor-pointer"
-                  >
-                    ➕ {lang === 'ar' ? 'إطلاق وتصميم حلقة جديدة يدوياً' : 'Create Live Tajweed Circle manually'}
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('conflicts')}
-                    className="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-black border border-slate-200/40 text-slate-700 block transition-colors cursor-pointer"
-                  >
-                    🔍 {lang === 'ar' ? 'تتبع نزاعات توزيع مستويات الطالبات' : 'Audit Student Classifications'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Unassigned Students Teaser List */}
-              <div className="bg-white rounded-3xl border border-slate-200/60 p-6 text-start">
-                <h4 className="text-sm sm:text-base font-black text-brand-dark mb-4 border-b border-slate-100 pb-2 flex justify-between items-center">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-red-500 block animate-ping"></span>
-                    <span>⚠️ {lang === 'ar' ? 'سجل الطالبات غير الموزعات' : 'Fresh Unassigned Reciters'}</span>
-                  </span>
-                  <span className="text-[10px] bg-red-50 border border-red-100 text-red-650 font-black px-2 py-0.5 rounded">
-                    {unassignedStudents.length} {lang === 'ar' ? 'طالبات بقين' : 'Left'}
-                  </span>
-                </h4>
-
-                <div className="max-h-[180px] overflow-y-auto space-y-2 pr-1">
-                  {unassignedStudents.length === 0 ? (
-                    <div className="text-center py-10">
-                      <p className="text-slate-400 text-xs font-bold italic">🎉 {lang === 'ar' ? 'تمت تغطية وتوزيع جميع الطالبات!' : 'Hooray! Every registrant matches a class!'}</p>
-                    </div>
-                  ) : (
-                    unassignedStudents.map((stud, idx) => {
-                      const idKey = stud.studentId || stud.email;
-                      const { typeValue, formatValue } = getStudentTypeAndFormat(stud);
-                      return (
-                        <div key={idx} className="flex justify-between items-center p-3 rounded-2xl bg-slate-50 border border-slate-200/40 hover:bg-slate-100 transition-colors">
-                          <div>
-                            <span className="text-xs font-black text-brand-dark block">{stud.firstName} {stud.lastName}</span>
-                            <div className="flex gap-2 text-[9px] font-bold text-slate-400 font-mono mt-0.5">
-                              <span>🆔 {stud.studentId || '---'}</span>
-                              <span className="text-brand-primary">({stud.level})</span>
-                            </div>
-                          </div>
-
-                          <button
-                            onClick={() => {
-                              setAssigningStudentId(idKey);
-                              setActiveTab('sessions');
-                            }}
-                            className="bg-brand-primary hover:bg-brand-accent text-white font-black text-[10px] px-3 py-1.5 rounded-lg shadow-sm transition-all cursor-pointer"
-                          >
-                            ➕ {lang === 'ar' ? 'تسكين يدوياً' : 'Place now'}
-                          </button>
-                        </div>
-                      );
-                    })
-                  )}
                 </div>
               </div>
             </div>
@@ -1002,50 +1055,156 @@ export default function AssignmentDashboard({
 
                             {/* Options to delete class from proposals */}
                             <div className="px-4 py-3 bg-slate-50/50 border-t border-slate-100 text-end">
-                              <button
-                                onClick={() => {
-                                  const updated = currentDraft.filter(s => s.id !== dr.id);
-                                  if (autoAssignFormat === 'in-person') {
-                                    setInPersonDraft(updated);
-                                    localStorage.setItem('itqan_in_person_draft', JSON.stringify(updated));
-                                  } else {
-                                    setOnlineDraft(updated);
-                                    localStorage.setItem('itqan_online_draft', JSON.stringify(updated));
-                                  }
-                                }}
-                                className="text-red-650 hover:bg-red-50/70 border border-red-100 bg-white px-3 py-1.5 font-bold text-[10px] rounded-lg cursor-pointer"
-                              >
-                                {lang === 'ar' ? 'إلغاء المجموعة بالكامل' : 'Cancel Proposed Class'}
-                              </button>
-                            </div>
+                               <button
+                                 onClick={() => {
+                                   const updated = currentDraft.filter(s => s.id !== dr.id);
+                                   if (autoAssignFormat === 'in-person') {
+                                     setInPersonDraft(updated);
+                                     localStorage.setItem('itqan_in_person_draft', JSON.stringify(updated));
+                                   } else {
+                                     setOnlineDraft(updated);
+                                     localStorage.setItem('itqan_online_draft', JSON.stringify(updated));
+                                   }
+                                 }}
+                                 className="text-red-150 hover:bg-red-50/70 border border-red-100 bg-white px-3 py-1.5 font-bold text-[10px] rounded-lg cursor-pointer"
+                               >
+                                 {lang === 'ar' ? 'إلغاء المجموعة بالكامل' : 'Cancel Proposed Class'}
+                               </button>
+                             </div>
+                           </div>
+                         );
+                       })}
+                     </div>
+                   )}
+                 </div>
+               );
+             })()}
+
+           </div>
+         )}
+
+         {/* ========================================================= */}
+         {/* VIEW 3: STUDENTS REGISTRY */}
+         {/* ========================================================= */}
+         {activeTab === 'students' && (
+           <div className="space-y-6 animate-fade-in text-start">
+             <div className="bg-white rounded-3xl border border-slate-200/60 p-6 shadow-3xs flex flex-col md:flex-row gap-4 items-center w-full">
+               {/* Searching panel */}
+               <div className="relative w-full md:flex-grow">
+                 <Search className="absolute left-3.5 top-3 w-4.5 h-4.5 text-slate-400" />
+                 <input
+                   type="text"
+                   placeholder={lang === 'ar' ? 'ابحثي بالطالبة، الرقم الجامعي، أو رغبة الفرز...' : 'Type student criteria to look up...'}
+                   value={studentSearch}
+                   onChange={(e) => setStudentSearch(e.target.value)}
+                   className="w-full bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-primary pl-11 pr-4 py-2.5 rounded-xl text-xs font-bold text-start"
+                 />
+               </div>
+
+              {/* Timing filtration custom multi-select checkbox dropdown */}
+              <div className="relative w-full md:w-64 font-bold select-none z-20">
+                <span className="absolute left-3 top-3 text-xs z-10">⏰</span>
+                <button
+                  type="button"
+                  onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
+                  className="w-full bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-primary pl-9 pr-8 py-2.5 rounded-xl text-xs font-black text-start flex items-center justify-between cursor-pointer"
+                >
+                  <span className="truncate">
+                    {selectedTimings.length === 0 
+                      ? (lang === 'ar' ? 'البحث بالأوقات والأنماط...' : 'Filter times & modes...')
+                      : (lang === 'ar' 
+                          ? `${selectedTimings.length} خيارات محددة` 
+                          : `${selectedTimings.length} selected filter(s)`)}
+                  </span>
+                  <svg className={`fill-current h-3 w-3 transition-transform duration-250 shrink-0 ${timeDropdownOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                  </svg>
+                </button>
+
+                {timeDropdownOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-20 cursor-default" 
+                      onClick={() => setTimeDropdownOpen(false)} 
+                    />
+                    <div className="absolute left-0 mt-1.5 w-full bg-white border border-slate-250 rounded-2xl shadow-xl z-35 max-h-80 overflow-y-auto p-3.5 space-y-3.5 text-xs text-start">
+                      {[
+                        { category: lang === 'ar' ? 'الأيام' : 'Days', items: [
+                          { value: 'Sunday', labelAr: 'الأحد', labelEn: 'Sunday' },
+                          { value: 'Monday', labelAr: 'الاثنين', labelEn: 'Monday' },
+                          { value: 'Tuesday', labelAr: 'الثلاثاء', labelEn: 'Tuesday' },
+                          { value: 'Wednesday', labelAr: 'الأربعاء', labelEn: 'Wednesday' },
+                          { value: 'Thursday', labelAr: 'الخميس', labelEn: 'Thursday' },
+                        ]},
+                        { category: lang === 'ar' ? 'الفترات الزمنية' : 'Time Slots', items: [
+                          { value: 'Fajr', labelAr: 'فجرية', labelEn: 'Fajr Session' },
+                          { value: '8:00', labelAr: '٨:٠٠ - ٩:١٥ ص', labelEn: '8:00 - 9:15 AM' },
+                          { value: '10:00', labelAr: '١٠:٠٠ - ١١:١٥ ص', labelEn: '10:00 - 11:15 AM' },
+                          { value: '12:00', labelAr: '١٢:٠٠ - ١:١٥ ظ', labelEn: '12:00 - 1:15 PM' },
+                          { value: '2:15', labelAr: '٢:١٥ - ٣:٣٠ ظ', labelEn: '2:15 - 3:30 PM' },
+                          { value: '4:15', labelAr: '٤:١٥ - ٥:٣٠ ع', labelEn: '4:15 - 5:30 PM' },
+                          { value: '8:00PM', labelAr: '٨:٠٠ - ٩:١٥ م', labelEn: '8:00 - 9:15 PM' },
+                        ]},
+                        { category: lang === 'ar' ? 'نمط التلقي' : 'Delivery Mode', items: [
+                          { value: 'Online', labelAr: 'عن بعد', labelEn: 'Online' },
+                          { value: 'In-Person', labelAr: 'حضوري', labelEn: 'In-Person' },
+                        ]}
+                      ].map((group, gidx) => (
+                        <div key={gidx} className="space-y-1.5">
+                          <span className="text-[10px] font-black text-slate-400 block border-b border-slate-100 pb-1">
+                            {group.category}
+                          </span>
+                          <div className="grid grid-cols-1 gap-1">
+                            {group.items.map((item, iidx) => {
+                              const isChecked = selectedTimings.includes(item.value);
+                              return (
+                                <label 
+                                  key={iidx} 
+                                  className={`flex items-center gap-2.5 p-1.5 rounded-lg cursor-pointer transition-colors ${
+                                    isChecked 
+                                      ? 'bg-brand-primary/5 text-brand-primary font-black' 
+                                      : 'hover:bg-slate-50 text-slate-700'
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => {
+                                      if (isChecked) {
+                                        setSelectedTimings(prev => prev.filter(v => v !== item.value));
+                                      } else {
+                                        setSelectedTimings(prev => [...prev, item.value]);
+                                      }
+                                    }}
+                                    className="accent-brand-primary cursor-pointer w-4 h-4 rounded text-brand-primary focus:ring-brand-primary"
+                                  />
+                                  <span className="font-bold">
+                                    {lang === 'ar' ? item.labelAr : item.labelEn}
+                                  </span>
+                                </label>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
+                        </div>
+                      ))}
+                      
+                      {selectedTimings.length > 0 && (
+                        <div className="pt-2 border-t border-slate-100 flex justify-between items-center bg-white sticky bottom-0">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedTimings([])}
+                            className="text-red-655 hover:underline text-[10px] font-black cursor-pointer"
+                          >
+                            {lang === 'ar' ? 'مسح الكل' : 'Clear All'}
+                          </button>
+                          <span className="text-[10px] text-slate-400">
+                            {lang === 'ar' ? `${selectedTimings.length} مختار` : `${selectedTimings.length} active`}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })()}
-
-          </div>
-        )}
-
-        {/* ========================================================= */}
-        {/* VIEW 3: STUDENTS REGISTRY */}
-        {/* ========================================================= */}
-        {activeTab === 'students' && (
-          <div className="space-y-6 animate-fade-in text-start">
-            <div className="bg-white rounded-3xl border border-slate-200/60 p-6 shadow-3xs flex flex-col md:flex-row gap-4 items-center">
-              {/* Searching panel */}
-              <div className="relative w-full md:flex-grow">
-                <Search className="absolute left-3.5 top-3 w-4.5 h-4.5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder={lang === 'ar' ? 'ابحثي بالطالبة، الرقم الجامعي، أو رغبة الفرز...' : 'Type student criteria to look up...'}
-                  value={studentSearch}
-                  onChange={(e) => setStudentSearch(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-primary pl-11 pr-4 py-2.5 rounded-xl text-xs font-bold text-start"
-                />
+                  </>
+                )}
               </div>
 
               {/* Filtering level & Types */}
@@ -1075,16 +1234,15 @@ export default function AssignmentDashboard({
 
             {/* Students Grid View */}
             <div className="bg-white rounded-3xl border border-slate-250/65 overflow-x-auto shadow-sm">
-              <table className="w-full text-xs font-bold border-collapse select-none min-w-[700px]">
+              <table className="w-full text-xs font-bold border-collapse select-none min-w-[1000px]">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-400 font-black h-12 uppercase text-start">
-                    <th className="px-5 text-start">{lang === 'ar' ? 'الطالبة' : 'Student Name'}</th>
-                    <th className="px-5 text-start">{lang === 'ar' ? 'الكلية' : 'SQU College'}</th>
-                    <th className="px-5 text-center">{lang === 'ar' ? 'الدرجة العلمية' : 'Type'}</th>
-                    <th className="px-5 text-center">{lang === 'ar' ? 'المستوى' : 'Level'}</th>
-                    <th className="px-5 text-center">{lang === 'ar' ? 'التوجيه المفضل' : 'Delivery Preference'}</th>
-                    <th className="px-5 text-center">{lang === 'ar' ? 'الحالة الحالية' : 'Assignment State'}</th>
-                    <th className="px-5 text-end">Actions</th>
+                    <th className="px-5 text-start">{lang === 'ar' ? 'الطالبة ووسيلة الاتصال' : 'Student Name & Contact'}</th>
+                    <th className="px-5 text-start">{lang === 'ar' ? 'الأوقات المتاحة المحددة' : 'Available Timings Chosen'}</th>
+                    <th className="px-5 text-center">{lang === 'ar' ? 'نمط التلقي المفضل' : 'Delivery Preference'}</th>
+                    <th className="px-5 text-start">{lang === 'ar' ? 'ملاحظات الطالبة' : 'Student Notes'}</th>
+                    <th className="px-5 text-center">{lang === 'ar' ? 'الحالة والمقرأة الحالية' : 'Assignment State'}</th>
+                    <th className="px-5 text-end">{lang === 'ar' ? 'الإجراءات' : 'Actions'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-start leading-relaxed">
@@ -1099,56 +1257,60 @@ export default function AssignmentDashboard({
                       }
                     });
 
+                    const isExpanded = expandedStudentIds.includes(idKey);
+
                     return (
-                      <tr key={sidx} className="hover:bg-slate-50/50 h-14">
+                      <React.Fragment key={idKey || sidx}>
+                        <tr className={`h-14 transition-colors ${isExpanded ? 'bg-sky-50/15' : 'hover:bg-slate-50/50'}`}>
                         <td className="px-5">
                           <div className="flex items-center gap-2.5">
                             <img src={st.avatar || `https://picsum.photos/seed/${idKey}/100/100`} className="w-8 h-8 rounded-full border border-slate-200 shrink-0" referrerPolicy="no-referrer" />
                             <div>
-                              <span className="font-extrabold text-brand-dark block">{st.firstName} {st.lastName}</span>
+                              <span className="font-extrabold text-brand-dark block text-[13px]">
+                                {getBintFullName(st)}
+                              </span>
                               <span className="text-[10px] text-slate-400 block font-mono">{st.email}</span>
+                              <span className="text-[10px] text-brand-primary block font-mono text-start" dir="ltr" style={{ direction: 'ltr', textAlign: 'start' }}>📱 {st.phone || '---'}</span>
                             </div>
                           </div>
                         </td>
 
-                        <td className="px-5 text-slate-650 font-medium">
-                          {st.college || '---'} ({st.cohort || '---'})
-                        </td>
-
-                        <td className="px-5 text-center font-black">
-                          {displayStudentType(st)}
-                        </td>
-
-                        <td className="px-5 text-center">
-                          <span className="bg-brand-neutral text-brand-primary border border-brand-primary/10 px-2.5 py-1 rounded-full text-[10.5px]">
-                            {st.level}
-                          </span>
+                        <td className="px-5 text-start font-mono text-xs text-brand-primary font-bold min-w-[280px]">
+                          <div className="whitespace-pre-line leading-relaxed py-2 font-black break-words" title={getFormattedTimings(st.enrollmentDetails?.timings || st.timings, lang)}>
+                            {getFormattedTimings(st.enrollmentDetails?.timings || st.timings, lang)}
+                          </div>
                         </td>
 
                         <td className="px-5 text-center text-slate-500 font-semibold">
                           {displayPreferredFormat(st)}
                         </td>
 
-                        <td className="px-5 text-center">
+                        <td className="px-5 text-start text-[10.5px] text-slate-500 max-w-[220px]">
+                          <div className="line-clamp-2" title={st.enrollmentDetails?.notes || st.notes || '---'}>
+                            {st.enrollmentDetails?.notes || st.notes || '---'}
+                          </div>
+                        </td>
+
+                        <td className="px-5 text-center font-bold">
                           {assignedSession ? (
                             <span className="bg-emerald-50 text-emerald-700 border border-emerald-150 px-2 py-1 rounded-lg text-[10px] uppercase font-black">
-                              👉 {(assignedSession as Session).name}
+                              👉 {assignedSession.name}
                             </span>
                           ) : (
                             <span className="bg-red-50 text-red-650 border border-red-100 px-2 py-1 rounded-lg text-[10px] uppercase font-black animate-pulse">
-                              ⏳ NOT ASSIGNED
+                              ⏳ {lang === 'ar' ? 'غير مسكنة' : 'NOT ASSIGNED'}
                             </span>
                           )}
                         </td>
 
-                        <td className="px-5 text-end">
-                          <div className="flex gap-2 justify-end">
+                        <td className="px-4 text-end">
+                          <div className="flex gap-1.5 justify-end items-center">
                             {assignedSession ? (
                               <button
                                 onClick={() => handleUnassignStudent((assignedSession as Session).id, idKey)}
-                                className="text-red-650 hover:bg-red-50 border border-red-100 bg-white px-3 py-1.5 rounded-xl font-bold text-[10px] cursor-pointer"
+                                className="text-red-655 hover:bg-red-50 border border-red-100 bg-white px-3 py-1.5 rounded-xl font-bold text-[10px] cursor-pointer"
                               >
-                                {lang === 'ar' ? 'إلغاء التعيين' : 'Unassign Class'}
+                                {lang === 'ar' ? 'إلغاء التسكين' : 'Unassign Class'}
                               </button>
                             ) : (
                               <button
@@ -1158,18 +1320,143 @@ export default function AssignmentDashboard({
                                 }}
                                 className="bg-brand-primary hover:bg-brand-accent text-white px-3.5 py-1.5 rounded-xl font-black text-[10px] shadow-sm cursor-pointer"
                               >
-                                ➕ {lang === 'ar' ? 'تعيين لحلقة' : 'Place student'}
+                                ➕ {lang === 'ar' ? 'تسكين يدوي' : 'Place student'}
                               </button>
                             )}
+
+                            <button
+                              onClick={() => {
+                                setExpandedStudentIds(prev => 
+                                  prev.includes(idKey) ? prev.filter(id => id !== idKey) : [...prev, idKey]
+                                );
+                              }}
+                              className={`p-1 px-2.5 rounded-xl text-xs font-black cursor-pointer flex items-center justify-center shrink-0 transition-all ${
+                                isExpanded
+                                  ? 'bg-sky-600 text-white border border-sky-600 shadow-xs scale-102 font-black'
+                                  : 'bg-sky-50 hover:bg-sky-100 text-sky-600 border border-sky-100 font-bold'
+                              }`}
+                              title={lang === 'ar' ? 'عرض تفاصيل الطالبة' : 'View Student Details'}
+                            >
+                              ℹ️
+                            </button>
                           </div>
                         </td>
                       </tr>
-                    );
-                  })}
+
+                      {isExpanded && (
+                        <tr className="bg-sky-50/15 border-b border-sky-100/40">
+                          <td colSpan={6} className="p-0">
+                            <div className="px-5 py-4 space-y-4 animate-fade-in text-start border-l-4 border-sky-500 bg-sky-50/5">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-bold text-gray-700">
+                                
+                                {/* Contact Information */}
+                                <div className="p-3 bg-white border border-slate-200/60 rounded-xl shadow-3xs">
+                                  <span className="text-slate-400 block mb-1 text-[10px]">{lang === 'ar' ? 'تفاصيل التواصل' : 'Contact Information'}</span>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[10px] text-slate-400 font-bold">{lang === 'ar' ? 'الهاتف:' : 'Phone:'}</span>
+                                      <span className="text-brand-dark font-mono text-xs font-black inline-block" dir="ltr" style={{ direction: 'ltr' }}>{st.phone || '---'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[10px] text-slate-400 font-bold">{lang === 'ar' ? 'البريد:' : 'Email:'}</span>
+                                      <span className="text-brand-dark font-mono text-[10.5px] font-black">{st.email || '---'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Academic Stream */}
+                                <div className="p-3 bg-white border border-slate-200/60 rounded-xl shadow-3xs">
+                                  <span className="text-slate-400 block mb-1 text-[10px]">{lang === 'ar' ? 'البيانات الأكاديمية' : 'Academic Profile'}</span>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[10px] text-slate-400 font-bold">{lang === 'ar' ? 'الكلية:' : 'College:'}</span>
+                                      <span className="text-brand-dark text-xs font-black">{st.college || '---'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[10px] text-slate-400 font-bold">{lang === 'ar' ? 'سنة الدفعة / المستوى:' : 'Cohort / Level:'}</span>
+                                      <span className="text-brand-dark font-mono text-xs font-black">{st.cohort || '---'} ({getStudentLevelDisplay(st, lang)})</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Delivery & Format Preference */}
+                                <div className="p-3 bg-white border border-slate-200/60 rounded-xl shadow-3xs border-s-4 border-s-brand-primary">
+                                  <span className="text-slate-400 block mb-1 text-[10px]">{lang === 'ar' ? 'خيارات التلقي ونمط الاستماع' : 'Delivery Preference'}</span>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[10px] text-slate-400 font-bold">{lang === 'ar' ? 'النمط المفضل:' : 'Preferred Format:'}</span>
+                                      <span className="text-brand-dark text-xs font-black">{displayPreferredFormat(st)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[10px] text-slate-400 font-bold">{lang === 'ar' ? 'ملاحظات:' : 'Notes:'}</span>
+                                      <span className="text-brand-dark text-[11px] font-black line-clamp-1">{st.enrollmentDetails?.notes || st.notes || '---'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                              </div>
+
+                              {/* Full Timings Display */}
+                              <div className="p-3.5 bg-white border border-slate-200/60 rounded-xl shadow-3xs text-xs font-bold">
+                                <span className="text-slate-400 block mb-1.5 flex items-center gap-1 text-[10px]">
+                                  <span>⏰</span>
+                                  <span>{lang === 'ar' ? 'جميع الفترات الزمنية والأيام المدخلة المفضلة لدى الطالبة:' : 'All preferred registration days & timing slots:'}</span>
+                                </span>
+                                <div className="text-brand-primary text-xs font-black whitespace-pre-wrap leading-relaxed py-1">
+                                  {getFormattedTimings(st.enrollmentDetails?.timings || st.timings, lang)}
+                                </div>
+                              </div>
+
+                              {/* Doc files */}
+                              {(st.cardPicName || st.voiceFileName) && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {st.cardPicName && (
+                                    <div className="p-3 bg-white border border-slate-200/60 rounded-xl shadow-3xs">
+                                      <span className="text-slate-400 block mb-2 text-[10px]">{lang === 'ar' ? 'البطاقة الجامعية المرفقة' : 'SQU ID Card verification'}</span>
+                                      <div className="h-28 w-fit border border-dashed border-slate-200 rounded-lg overflow-hidden bg-slate-50 relative flex items-center justify-center p-1">
+                                        <img 
+                                          src={`https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=400`} 
+                                          alt="ID Document preview" 
+                                          className="h-full object-cover rounded-md"
+                                        />
+                                        <span className="absolute bottom-1 right-2 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded font-mono">{st.cardPicName}</span>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {st.voiceFileName && (
+                                    <div className="p-3 bg-white border border-slate-200/60 rounded-xl shadow-3xs flex flex-col justify-between">
+                                      <div>
+                                        <span className="text-slate-400 block mb-1 text-[10px]">{lang === 'ar' ? 'الملف الصوتي المسجل للتلاوة كعينة' : 'Voice recitation diagnostic sample'}</span>
+                                        <span className="text-brand-dark font-mono text-[10.5px] block truncate font-black mb-2">🎵 {st.voiceFileName}</span>
+                                      </div>
+                                      <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-lg flex items-center gap-2">
+                                        {/* Audio player simulator */}
+                                        <span className="text-[10px] text-slate-500 font-extrabold flex items-center gap-1.5 w-full">
+                                          <span className="inline-block w-2 h-2 bg-brand-primary rounded-full animate-ping"></span>
+                                          <span>{lang === 'ar' ? 'تلاوة تجريبية جاهزة للاستماع' : 'Recitation diagnostic sample loaded'}</span>
+                                        </span>
+                                        <button 
+                                          onClick={() => alert(lang === 'ar' ? 'تشغيل عينة تلاوة الطالبة المتميزة...' : 'Playing student diagnostic recitation...')}
+                                          className="px-3 py-1.5 bg-brand-primary text-white rounded-lg hover:bg-brand-accent text-[10px] font-black cursor-pointer shrink-0"
+                                        >
+                                          ▶️ {lang === 'ar' ? 'استماع' : 'Listen'}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
 
                   {processedStudents.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="text-center py-10 font-bold text-slate-400 italic">
+                      <td colSpan={9} className="text-center py-10 font-bold text-slate-400 italic">
                         {lang === 'ar' ? 'عفواً، لا توجد سجلات مطابقة.' : 'No student records matched parameters.'}
                       </td>
                     </tr>
@@ -1237,6 +1524,7 @@ export default function AssignmentDashboard({
                         <div>
                           <span className="font-extrabold text-brand-dark block text-sm leading-normal">{teach.firstName} {teach.lastName}</span>
                           <span className="text-[10px] text-slate-400 block font-mono">{teach.email}</span>
+                          <span className="text-[10px] text-brand-primary block font-mono">📞 {teach.phone || '---'}</span>
                         </div>
                       </div>
 
@@ -1247,7 +1535,7 @@ export default function AssignmentDashboard({
                         </div>
                         <div className="flex justify-between">
                           <span className="text-slate-400 font-bold">{lang === 'ar' ? 'الترخيص والاعتماد' : 'Certification'}:</span>
-                          <span className="bg-brand-neutral text-brand-primary font-black px-2 py-0.5 rounded text-[10px]">{teach.level}</span>
+                          <span className="bg-brand-neutral text-brand-primary font-black px-2 py-0.5 rounded text-[10px]">{getTeacherLevelDisplay(teach, lang)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-slate-400 font-bold">{lang === 'ar' ? 'نواتج الخبرة' : 'Teaching Span'}:</span>
@@ -1256,33 +1544,58 @@ export default function AssignmentDashboard({
                         <div className="flex justify-between">
                           <span className="text-slate-400 font-bold">{lang === 'ar' ? 'نمط المشاركة المفضل' : 'Delivery Slot'}:</span>
                           <span className="font-bold text-brand-primary">
-                            {formatPref === 'online' ? '💻 Online' : formatPref === 'in-person' ? '🏫 In-person' : '🪐 Both / Flexible'}
+                            {formatPref === 'online' ? '💻 Online' : '🏫 In-person'}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col gap-1 border-t border-slate-100/60 pt-2">
+                          <span className="text-slate-400 font-bold">{lang === 'ar' ? 'الأوقات المتاحة للتدريس' : 'Available Teach Timings'}:</span>
+                          <span className="text-[10.5px] text-slate-700 font-mono break-words line-clamp-2" title={getFormattedTimings(teach.enrollmentDetails?.timings || teach.timings, lang)}>
+                            {getFormattedTimings(teach.enrollmentDetails?.timings || teach.timings, lang)}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col gap-1 border-t border-slate-100/60 pt-2">
+                          <span className="text-slate-400 font-bold">{lang === 'ar' ? 'ملاحظات المعلمة' : 'Teacher Notes'}:</span>
+                          <span className="text-[10.5px] text-slate-500 line-clamp-2" title={teach.enrollmentDetails?.notes || teach.notes || '---'}>
+                            {teach.enrollmentDetails?.notes || teach.notes || '---'}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="pt-4 border-t border-slate-100 select-none">
-                      <span className="text-[9.5px] text-slate-400 font-black block uppercase tracking-wider mb-2">
-                        {lang === 'ar' ? 'الحلقات النشطة المشرف عليها:' : 'Supervised Session Channels:'}
-                      </span>
+                    <div className="pt-4 border-t border-slate-100 select-none space-y-2">
+                      <div>
+                        <span className="text-[9.5px] text-slate-400 font-black block uppercase tracking-wider mb-2">
+                          {lang === 'ar' ? 'الحلقات النشطة المشرف عليها:' : 'Supervised Session Channels:'}
+                        </span>
 
-                      {supervisedSessions.length === 0 ? (
-                        <div className="p-3 bg-red-500/5 text-amber-650 rounded-xl text-[10px] font-black border border-dashed border-opacity-40 border-amber-300 text-center">
-                          ⚠ {lang === 'ar' ? 'لا يدرس أي مقارب / حلقة حالياً' : 'No active classes assigned'}
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-1 gap-1.5 max-h-[100px] overflow-y-auto pr-1">
-                          {supervisedSessions.map((sv, svIdx) => (
-                            <div key={svIdx} className="p-2 bg-slate-50 border border-slate-150 rounded-lg flex justify-between items-center text-[10px]">
-                              <span className="font-extrabold text-slate-800 truncate">{sv.name}</span>
-                              <span className="bg-brand-primary text-white scale-90 rounded px-1.5 py-0.5 text-[8.5px] shrink-0 font-bold">
-                                {sv.students?.length} {lang === 'ar' ? 'طالبة' : 'Students'}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                        {supervisedSessions.length === 0 ? (
+                          <div className="p-3 bg-red-500/5 text-amber-650 rounded-xl text-[10px] font-black border border-dashed border-opacity-40 border-amber-300 text-center">
+                            ⚠ {lang === 'ar' ? 'لا يدرس أي مقارب / حلقة حالياً' : 'No active classes assigned'}
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 gap-1.5 max-h-[100px] overflow-y-auto pr-1">
+                            {supervisedSessions.map((sv, svIdx) => (
+                              <div key={svIdx} className="p-2 bg-slate-50 border border-slate-150 rounded-lg flex justify-between items-center text-[10px]">
+                                <span className="font-extrabold text-slate-800 truncate">{sv.name}</span>
+                                <span className="bg-brand-primary text-white scale-90 rounded px-1.5 py-0.5 text-[8.5px] shrink-0 font-bold">
+                                  {sv.students?.length} {lang === 'ar' ? 'طالبة' : 'Students'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => setInfoModalTeacher(teach)}
+                        className="w-full py-2.5 bg-sky-50 hover:bg-sky-100 text-sky-600 border border-sky-100 rounded-xl text-xs font-black cursor-pointer flex items-center justify-center gap-1.5 transition-colors"
+                        title={lang === 'ar' ? 'عرض تفاصيل الاعتماد والسجل الكامل' : 'Full Teacher Information'}
+                      >
+                        <span>ℹ️</span>
+                        <span>{lang === 'ar' ? 'السجل التفصيلي الكامل' : 'All System Info'}</span>
+                      </button>
                     </div>
                   </div>
                 );
@@ -1350,7 +1663,49 @@ export default function AssignmentDashboard({
             {/* Display list/grid of SQU Active Classes */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {processedSessions.map((sess, idx) => {
-                const isOnline = sess.location.includes('تيمز') || sess.location.includes('Teams') || sess.location.toLowerCase().includes('online');
+                // Seek live teacher details in allTeachers to support runtime name or format edits
+                const actualTeacher = allTeachers.find(t => 
+                  t.phone === sess.teacher.phone || 
+                  t.name === sess.teacher.name || 
+                  `${t.firstName || ''} ${t.lastName || ''}`.trim() === sess.teacher.name
+                );
+
+                // Dynamically resolve the teacher's name
+                const resolvedTeacherName = actualTeacher 
+                  ? `${actualTeacher.firstName || ''} ${actualTeacher.lastName || ''}`.trim() || actualTeacher.name
+                  : sess.teacher.name;
+
+                // Strip any existing "أ. " or "T. " prefixes from raw name to construct clean format
+                const cleanTeacherName = resolvedTeacherName
+                  .replace(/^(T\.\s*|أ\.\s*)/i, '')
+                  .trim();
+
+                const dynamicSessionName = lang === 'ar'
+                  ? `حلقة أ. ${cleanTeacherName}`
+                  : `T.${cleanTeacherName} session`;
+
+                // Handle format and location defaults
+                const isOnline = actualTeacher 
+                  ? actualTeacher.deliveryPreference === 'online' || actualTeacher.enrollmentDetails?.deliveryPreference === 'online'
+                  : sess.location.includes('تيمز') || sess.location.includes('Teams') || sess.location.toLowerCase().includes('online');
+
+                const defaultInPersonLoc = lang === 'ar' ? 'استراحة التربية' : 'استراحة التربية (Education Lounge)';
+                const defaultOnlineLoc = lang === 'ar' ? 'أونلاين عبر تيمز' : 'Teams Digital Channel';
+
+                let resolvedLocation = sess.location;
+                // If location is blank or generic default SQU Campus, resolve to default "استراحة التربية" 
+                if (!resolvedLocation || resolvedLocation.includes('مسجد الجامعة') || resolvedLocation.trim().toLowerCase() === 'squ campus mosque' || resolvedLocation.trim() === '') {
+                  resolvedLocation = isOnline ? defaultOnlineLoc : defaultInPersonLoc;
+                }
+
+                if (actualTeacher) {
+                  const teacherPref = actualTeacher.deliveryPreference || actualTeacher.enrollmentDetails?.deliveryPreference;
+                  if (teacherPref === 'online' && !resolvedLocation.toLowerCase().includes('teams') && !resolvedLocation.toLowerCase().includes('online')) {
+                    resolvedLocation = defaultOnlineLoc;
+                  } else if (teacherPref === 'in-person' && (resolvedLocation.toLowerCase().includes('teams') || resolvedLocation.toLowerCase().includes('online'))) {
+                    resolvedLocation = defaultInPersonLoc;
+                  }
+                }
                 
                 return (
                   <div key={idx} className="bg-white rounded-3xl border border-slate-200 shadow-3xs overflow-hidden hover:shadow-md transition-all flex flex-col justify-between">
@@ -1365,8 +1720,8 @@ export default function AssignmentDashboard({
                             {isOnline ? '💻 Digital Stream' : '🏫 In-Person SQU'}
                           </span>
                         </div>
-                        <h4 className="font-extrabold text-white text-base truncate mt-2">{sess.name}</h4>
-                        <span className="text-xs text-white/95 truncate block mt-0.5">👩‍🏫 {sess.teacher.name}</span>
+                        <h4 className="font-extrabold text-white text-base truncate mt-2">{dynamicSessionName}</h4>
+                        <span className="text-xs text-white/95 truncate block mt-0.5">👩‍🏫 {resolvedTeacherName}</span>
                       </div>
 
                       {/* Class Body Details */}
@@ -1378,7 +1733,7 @@ export default function AssignmentDashboard({
                           </div>
                           <div className="flex items-center gap-1.5">
                             <span>📍</span>
-                            <span>{sess.location}</span>
+                            <span>{resolvedLocation}</span>
                           </div>
                         </div>
 
@@ -1713,6 +2068,172 @@ export default function AssignmentDashboard({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Student Informational Modal ("i" button) */}
+      {infoModalStudent && (
+        <div className="fixed inset-0 bg-brand-dark/60 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-brand-primary/15 shadow-2xl w-full max-w-xl text-start animate-fade-in overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-brand-primary to-brand-accent p-6 text-white flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <img src={infoModalStudent.avatar || `https://picsum.photos/seed/${infoModalStudent.studentId || infoModalStudent.email}/100/100`} className="w-12 h-12 rounded-full border-2 border-white/40" referrerPolicy="no-referrer" />
+                <div>
+                  <h4 className="text-base font-black leading-tight">{infoModalStudent.firstName} {infoModalStudent.lastName}</h4>
+                  <p className="text-xs text-white/80 font-mono mt-0.5">{infoModalStudent.email}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setInfoModalStudent(null)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center font-bold text-lg cursor-pointer transition-colors"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4 text-xs font-bold">
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-slate-400 block mb-1">{lang === 'ar' ? 'رقم الهاتف' : 'Phone Number'}</span>
+                  <span className="text-brand-dark font-mono text-sm inline-block" dir="ltr" style={{ direction: 'ltr' }}>{infoModalStudent.phone || '---'}</span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-slate-400 block mb-1">{lang === 'ar' ? 'الدرجة العلمية والمسار' : 'Academic Cohort'}</span>
+                  <span className="text-brand-dark text-sm">{displayStudentType(infoModalStudent)}</span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-slate-400 block mb-1">{lang === 'ar' ? 'الكلية' : 'SQU College'}</span>
+                  <span className="text-brand-dark text-sm">{infoModalStudent.college || '---'}</span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-slate-400 block mb-1">{lang === 'ar' ? 'سنة الدفعة' : 'Cohort Year'}</span>
+                  <span className="text-brand-dark font-mono text-sm">{infoModalStudent.cohort || '---'}</span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-slate-400 block mb-1">{lang === 'ar' ? 'المستوى التعليمي والفرز' : 'Tajweed Level'}</span>
+                  <span className="bg-brand-neutral text-brand-primary px-2.5 py-0.5 rounded text-xs font-black w-fit block mt-1 font-mono">
+                    {getStudentLevelDisplay(infoModalStudent, lang)}
+                  </span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-slate-400 block mb-1">{lang === 'ar' ? 'طريقة الاستماع المفضلة' : 'Delivery Preference'}</span>
+                  <span className="text-brand-dark text-sm">{displayPreferredFormat(infoModalStudent)}</span>
+                </div>
+              </div>
+
+              {/* Timings Prefered */}
+              <div className="p-4 bg-brand-primary/5 border border-brand-primary/10 rounded-2xl space-y-1.5">
+                <h5 className="text-xs font-black text-brand-primary uppercase tracking-wide">{lang === 'ar' ? 'الأوقات والمواعيد المرشحة والمختارة في النظام:' : 'Eligible recitation slots chosen:'}</h5>
+                <p className="text-xs font-mono font-bold text-slate-700 leading-normal">
+                  {getFormattedTimings(infoModalStudent.enrollmentDetails?.timings || infoModalStudent.timings, lang)}
+                </p>
+              </div>
+
+              {/* Student Notes */}
+              <div className="p-4 bg-amber-500/5 border border-amber-250 rounded-2xl space-y-1.5">
+                <h5 className="text-xs font-black text-amber-805 uppercase tracking-wide">{lang === 'ar' ? 'ملاحظات التسجيل وباقات الحفظ والالتزام:' : 'Applicant Enrollment notes:'}</h5>
+                <p className="text-[11.5px] font-bold text-slate-650 leading-relaxed break-words whitespace-pre-wrap">
+                  {infoModalStudent.enrollmentDetails?.notes || infoModalStudent.notes || (lang === 'ar' ? 'لا توجد ملاحظات تفصيلية مدونة.' : 'No specific background notes written by student.')}
+                </p>
+              </div>
+            </div>
+
+            {/* Footer shadow actions */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 text-end">
+              <button 
+                onClick={() => setInfoModalStudent(null)}
+                className="bg-brand-primary hover:bg-brand-accent text-white px-5 py-2.5 rounded-xl text-xs font-black cursor-pointer transition-all"
+              >
+                {lang === 'ar' ? 'إغلاق نافذة السجل' : 'Done & Close'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Teacher Informational Modal ("i" button) */}
+      {infoModalTeacher && (
+        <div className="fixed inset-0 bg-brand-dark/60 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-brand-primary/15 shadow-2xl w-full max-w-xl text-start animate-fade-in overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-brand-primary to-brand-accent p-6 text-white flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <img src={infoModalTeacher.avatar || `https://picsum.photos/seed/${infoModalTeacher.employeeId || infoModalTeacher.email}/100/100`} className="w-12 h-12 rounded-full border-2 border-white/40" referrerPolicy="no-referrer" />
+                <div>
+                  <h4 className="text-base font-black leading-tight">{infoModalTeacher.firstName} {infoModalTeacher.lastName}</h4>
+                  <p className="text-xs text-white/80 font-mono mt-0.5">{infoModalTeacher.email}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setInfoModalTeacher(null)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center font-bold text-lg cursor-pointer transition-colors"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4 text-xs font-bold">
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-slate-400 block mb-1">{lang === 'ar' ? 'رقم الهاتف' : 'Phone Number'}</span>
+                  <span className="text-brand-dark font-mono text-sm">{infoModalTeacher.phone || '---'}</span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-slate-400 block mb-1">{lang === 'ar' ? 'الرقم الوظيفي / الجامعي' : 'Employee ID'}</span>
+                  <span className="text-brand-dark font-mono text-sm">{infoModalTeacher.employeeId || '---'}</span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-slate-400 block mb-1">{lang === 'ar' ? 'القسم أو الكلية' : 'Department/College'}</span>
+                  <span className="text-brand-dark text-sm">{infoModalTeacher.college || '---'}</span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-slate-400 block mb-1">{lang === 'ar' ? 'الاعتماد ومرحلة الترخيص' : 'Staff Certification'}</span>
+                  <span className="bg-brand-neutral text-brand-primary px-2.5 py-0.5 rounded text-xs font-black w-fit block mt-1 font-mono">
+                    {getTeacherLevelDisplay(infoModalTeacher, lang)}
+                  </span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-slate-400 block mb-1">{lang === 'ar' ? 'نواتج الخبرة التقريبية' : 'Experience Years'}</span>
+                  <span className="text-brand-dark text-sm">{getTeacherPrefAndExp(infoModalTeacher).expYears}</span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                  <span className="text-slate-400 block mb-1">{lang === 'ar' ? 'قناة التدريس المفضلة' : 'Preferred Format'}</span>
+                  <span className="text-brand-dark text-sm">
+                    {getTeacherPrefAndExp(infoModalTeacher).formatPref === 'online' ? '💻 Online Digital Teams' : '🏫 SQU In-Person Mosque'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Timings Prefered */}
+              <div className="p-4 bg-brand-primary/5 border border-brand-primary/10 rounded-2xl space-y-1.5">
+                <h5 className="text-xs font-black text-brand-primary uppercase tracking-wide">{lang === 'ar' ? 'الأوقات المتاحة والمختارة بجدولة المعلمة:' : 'Instructing available time slots:'}</h5>
+                <p className="text-xs font-mono font-bold text-slate-700 leading-normal">
+                  {getFormattedTimings(infoModalTeacher.enrollmentDetails?.timings || infoModalTeacher.timings, lang)}
+                </p>
+              </div>
+
+              {/* Teacher Notes */}
+              <div className="p-4 bg-amber-500/5 border border-amber-250 rounded-2xl space-y-1.5">
+                <h5 className="text-xs font-black text-amber-805 uppercase tracking-wide">{lang === 'ar' ? 'ملاحظات المعلمة وتوجيهات الاتصال:' : 'Special instruction notes:'}</h5>
+                <p className="text-[11.5px] font-bold text-slate-650 leading-relaxed break-words whitespace-pre-wrap">
+                  {infoModalTeacher.enrollmentDetails?.notes || infoModalTeacher.notes || (lang === 'ar' ? 'لا توجد ملاحظات تذكر.' : 'No background notes written by supervisor.')}
+                </p>
+              </div>
+            </div>
+
+            {/* Footer actions */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 text-end">
+              <button 
+                onClick={() => setInfoModalTeacher(null)}
+                className="bg-brand-primary hover:bg-brand-accent text-white px-5 py-2.5 rounded-xl text-xs font-black cursor-pointer transition-all"
+              >
+                {lang === 'ar' ? 'إغلاق نافذة السجل' : 'Done & Close'}
+              </button>
+            </div>
           </div>
         </div>
       )}

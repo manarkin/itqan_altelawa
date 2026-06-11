@@ -28,6 +28,7 @@ import ControlPanel from './components/ControlPanel';
 import Profile from './components/Profile';
 import { About, Contact, Conditions, Success } from './components/StaticPages';
 import Footer from './components/Footer';
+import { ArrowUp } from 'lucide-react';
 
 export default function App() {
   // Lang state, initialized to ar (Arabic) to match SQU context, but easily toggleable!
@@ -42,6 +43,23 @@ export default function App() {
   });
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Core Synchronized Data States
   const [user, setUser] = useState<User | null>(() => {
@@ -498,6 +516,7 @@ export default function App() {
             t={t}
             semesters={semesters}
             onUpdateSemesters={setSemesters}
+            navigate={setCurrentView}
           />
         );
       case 'profile':
@@ -563,6 +582,19 @@ export default function App() {
       <main className="flex-grow pt-28 pb-12 w-full max-w-7xl mx-auto px-4 sm:px-6 animate-fade-in">
         {renderContent()}
       </main>
+
+      {/* Floating Scroll to Top button accessible globally on all pages and scopes */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 p-3 bg-brand-primary hover:bg-brand-accent text-white rounded-full shadow-lg z-[210] cursor-pointer border border-white/20 hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center animate-fade-in"
+          aria-label="Back to top"
+          id="btn-back-to-top"
+          title={lang === 'ar' ? 'الرجوع لأعلى الصفحة' : 'Back to Top'}
+        >
+          <ArrowUp className="w-5.5 h-5.5 stroke-[3]" />
+        </button>
+      )}
 
       {/* Exquisite Central Islamic Medallion decorative bg illustration floating element */}
       <div className="fixed inset-0 pointer-events-none z-[-5] flex items-center justify-center opacity-[0.03] overflow-hidden">
