@@ -27,16 +27,28 @@ export default function Navbar({
   return (
     <nav className="fixed top-0 left-0 right-0 h-20 bg-white/95 backdrop-blur-md border-b-2 border-brand-warm z-50 transition-all duration-300 shadow-sm">
       <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-        {/* Logo Section */}
+        {/* Logo Section / Profile Picture when logged in */}
         <div 
           className="flex items-center gap-3 cursor-pointer select-none" 
-          onClick={() => navigate('home')}
+          onClick={() => navigate(user ? 'profile' : 'home')}
         >
-          <div className="w-11 h-11 bg-brand-primary rounded-2xl flex items-center justify-center shadow-md shadow-brand-primary/20 hover:scale-105 active:scale-95 transition-all duration-200">
-            <BookOpen className="text-white w-6 h-6" />
-          </div>
+          {user ? (
+            <div className="relative group">
+              <img 
+                src={user.avatar || 'https://picsum.photos/seed/default_user/100/100'} 
+                alt="Profile Avatar"
+                referrerPolicy="no-referrer"
+                className={`w-11 h-11 rounded-full object-cover border-2 shadow-md transition-all duration-300 group-hover:scale-105 active:scale-95 ${
+                  currentView === 'profile' ? 'border-brand-primary ring-2 ring-brand-primary/20' : 'border-gray-200 hover:border-brand-primary/60'
+                }`}
+              />
+            </div>
+          ) : (
+            <div className="w-11 h-11 bg-brand-primary rounded-2xl flex items-center justify-center shadow-md shadow-brand-primary/20 hover:scale-105 active:scale-95 transition-all duration-200">
+              <BookOpen className="text-white w-6 h-6" />
+            </div>
+          )}
         </div>
-
 
 
         {/* Desktop Navigation */}
@@ -55,12 +67,6 @@ export default function Navbar({
                 onClick={() => navigate('mysession')}
               >
                 {t().mySession}
-              </button>
-              <button 
-                className={`text-base font-bold transition-colors duration-200 ${currentView === 'profile' ? 'text-brand-primary' : 'text-gray-500 hover:text-brand-dark'}`} 
-                onClick={() => navigate('profile')}
-              >
-                {t().profile}
               </button>
               {user.role === 'ADMIN' && (
                 <button 
@@ -135,12 +141,6 @@ export default function Navbar({
                 onClick={() => { navigate('mysession'); setMobileMenuOpen(false); }}
               >
                 {t().mySession}
-              </button>
-              <button 
-                className={`text-lg font-black ${currentView === 'profile' ? 'text-brand-primary' : 'text-gray-500'}`} 
-                onClick={() => { navigate('profile'); setMobileMenuOpen(false); }}
-              >
-                {t().profile}
               </button>
               {user.role === 'ADMIN' && (
                 <button 

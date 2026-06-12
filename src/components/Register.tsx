@@ -68,29 +68,17 @@ export default function Register({
   const isAr = lang === 'ar';
   const tField = (ar: string, en: string) => isAr ? ar : en;
 
-  const colleges = isAr 
-    ? [
-        "العلوم الزراعية والبحرية",
-        "الآداب والعلوم الاجتماعية",
-        "الإقتصاد والعلوم السياسية",
-        "التربية",
-        "الهندسة",
-        "الحقوق",
-        "الطب والعلوم الصحية",
-        "العلوم",
-        "التمريض"
-      ] 
-    : [
-        "Agricultural and Marine Sciences",
-        "Arts and Social Sciences",
-        "Economics and Political Science",
-        "Education",
-        "Engineering",
-        "Law",
-        "Medicine and Health Sciences",
-        "Science",
-        "Nursing"
-      ];
+  const colleges = [
+    "التربية / Education",
+    "الآداب والعلوم الاجتماعية / Arts & Social Sciences",
+    "العلوم / Science",
+    "الهندسة / Engineering",
+    "الطب والعلوم الصحية / Medicine & Health Sciences",
+    "الإقتصاد والعلوم السياسية / Economics & Political Science",
+    "العلوم الزراعية والبحرية / Agricultural & Marine Sciences",
+    "الحقوق / Law",
+    "التمريض / Nursing"
+  ];
 
   const formatOMPhone = (val: string): string => {
     const cleanDigits = val.replace(/\D/g, '');
@@ -431,7 +419,9 @@ export default function Register({
                 </div>
                 <div>
                   <label className="text-xs font-black text-gray-400 block mb-1">
-                    {regStudentType === 'undergrad' ? tField('الكلية الجامعية بالجامعة', 'SQU College') : tField('الكلية / جهة العمل الحالية', 'Workplace / SQU College')}
+                    {regStudentType === 'undergrad' 
+                      ? 'الكلية الجامعية بالجامعة / SQU College' 
+                      : 'الكلية أو جهة العمل الحالية / Workplace or SQU College'}
                   </label>
                   <select 
                     className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
@@ -439,12 +429,12 @@ export default function Register({
                     value={selectedCollege}
                     onChange={(e) => setSelectedCollege(e.target.value)}
                   >
-                    <option value="" disabled>{tField('اختر الكلية بالجامعة...', 'Select SQU College...')}</option>
+                    <option value="" disabled>اختر الكلية بالجامعة / Select SQU College...</option>
                     {colleges.map((c, idx) => (
                       <option key={idx} value={c}>{c}</option>
                     ))}
                     {regStudentType === 'postgrad' && (
-                      <option value="أخرى">{tField('أخرى (جهة خارجية أو جهة عمل خاصة)', 'Others / Manual Workplace')}</option>
+                      <option value="أخرى">أخرى (جهة خارجية أو جهة عمل خاصة) / Others (External or Private work)</option>
                     )}
                   </select>
                 </div>
@@ -469,7 +459,7 @@ export default function Register({
               {regStudentType === 'undergrad' && (
                 <div>
                   <label className="text-xs font-black text-gray-400 block mb-1 font-bold">
-                    {tField('الدفعة الأكاديمية بالجامعة (Cohort Year)', 'Cohort Year')}
+                    الدفعة الأكاديمية بالجامعة / Cohort Year
                   </label>
                   <select 
                     value={studentCohort}
@@ -477,7 +467,7 @@ export default function Register({
                     className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
                     required 
                   >
-                    <option value="">{tField('اختر الدفعة', 'Select Cohort')}</option>
+                    <option value="">اختر الدفعة / Select Cohort</option>
                     <option value="2026">2026</option>
                     <option value="2025">2025</option>
                     <option value="2024">2024</option>
@@ -486,7 +476,7 @@ export default function Register({
                     <option value="2021">2021</option>
                     <option value="2020">2020</option>
                     <option value="2019">2019</option>
-                    <option value="2018 and before">{tField('2018 وقبل ذلك', '2018 and before')}</option>
+                    <option value="2018 and before">2018 وقبل ذلك / 2018 and before</option>
                   </select>
                 </div>
               )}
@@ -763,27 +753,45 @@ export default function Register({
 
             {/* Custom SQU College, Designated Level & Cohort Dropdowns */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="text-xs font-black text-gray-400 block mb-1">
-                  {tField('الكلية أو مجال العمل', 'College or Work Area')}
-                </label>
-                <select 
-                  className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
-                  required
-                  value={teacherCollege}
-                  onChange={(e) => setTeacherCollege(e.target.value)}
-                >
-                  <option value="" disabled>{tField('اختر الكلية أو مجال العمل...', 'Select College or Work Area...')}</option>
-                  {colleges.map((c, idx) => (
-                    <option key={idx} value={c}>{c}</option>
-                  ))}
-                  <option value="أخرى">{tField('أخرى', 'Other')}</option>
-                </select>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-black text-gray-400 block mb-1">
+                    الكلية أو مجال العمل / College or Work Area
+                  </label>
+                  <select 
+                    className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
+                    required
+                    value={teacherCollege}
+                    onChange={(e) => setTeacherCollege(e.target.value)}
+                  >
+                    <option value="" disabled>اختر الكلية أو مجال العمل / Select College or Work Area...</option>
+                    {colleges.map((c, idx) => (
+                      <option key={idx} value={c}>{c}</option>
+                    ))}
+                    <option value="أخرى">أخرى / Other</option>
+                  </select>
+                </div>
+
+                {teacherCollege === 'أخرى' && (
+                  <div className="animate-fade-in p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <label className="text-xs font-black text-gray-400 block mb-1">
+                      {tField('يرجى تحديد الكلية أو مجال العمل الآخر:', 'Please specify other College or Work Area:')}
+                    </label>
+                    <input 
+                      type="text" 
+                      value={teacherManualCollege}
+                      onChange={(e) => setTeacherManualCollege(e.target.value)}
+                      className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
+                      placeholder={tField('مثال: جهة خارجية أو مجال عمل آخر', 'e.g. External organization or other field')}
+                      required
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
                 <label className="text-xs font-black text-gray-400 block mb-1">
-                  {tField('المستوى / الصفة', 'Level')}
+                  المستوى أو الصفة / Level or Designation
                 </label>
                 <select 
                   className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
@@ -791,15 +799,15 @@ export default function Register({
                   value={teacherLevel}
                   onChange={(e) => setTeacherLevel(e.target.value)}
                 >
-                  <option value="مجازة">{tField('مجازة (Certified / Mujazah)', 'Certified / Mujazah')}</option>
-                  <option value="طالبة اقراء">{tField('طالبة اقراء (Iqraa Student)', 'Iqraa Student')}</option>
-                  <option value="طالبة اقراء في فصلي الأول">{tField('طالبة اقراء في فصلي الأول (Iqraa student in my first semester)', 'Iqraa student in my first semester')}</option>
+                  <option value="مجازة">مجازة / Certified / Mujazah</option>
+                  <option value="طالبة اقراء">طالبة اقراء / Iqraa Student</option>
+                  <option value="طالبة اقراء في فصلي الأول">طالبة اقراء في فصلي الأول / Iqraa student in my first semester</option>
                 </select>
               </div>
 
               <div>
                 <label className="text-xs font-black text-gray-400 block mb-1">
-                  {tField('الدفعة الأكاديمية (Cohort Year)', 'Cohort Year')}
+                  الدفعة الأكاديمية / Cohort Year
                 </label>
                 <select 
                   value={teacherCohort}
@@ -807,7 +815,7 @@ export default function Register({
                   className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
                   required 
                 >
-                  <option value="not_applicable">{tField('غير مطبق (Not Applicable)', 'Not Applicable')}</option>
+                  <option value="not_applicable">غير مطبق / Not Applicable</option>
                   <option value="2026">2026</option>
                   <option value="2025">2025</option>
                   <option value="2024">2024</option>
@@ -816,26 +824,10 @@ export default function Register({
                   <option value="2021">2021</option>
                   <option value="2020">2020</option>
                   <option value="2019">2019</option>
-                  <option value="2018 and before">{tField('2018 وقبل ذلك', '2018 and before')}</option>
+                  <option value="2018 and before">2018 وقبل ذلك / 2018 and before</option>
                 </select>
               </div>
             </div>
-
-            {teacherCollege === 'أخرى' && (
-              <div className="animate-fade-in p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                <label className="text-xs font-black text-gray-400 block mb-1">
-                  {tField('يرجى تحديد الكلية أو مجال العمل الآخر:', 'Please specify other College or Work Area:')}
-                </label>
-                <input 
-                  type="text" 
-                  value={teacherManualCollege}
-                  onChange={(e) => setTeacherManualCollege(e.target.value)}
-                  className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
-                  placeholder={tField('مثال: جهة خارجية أو مجال عمل آخر', 'e.g. External organization or other field')}
-                  required
-                />
-              </div>
-            )}
 
             {/* Password credentials placed lastly directly as plain inputs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

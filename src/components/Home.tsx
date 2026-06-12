@@ -602,77 +602,92 @@ export default function Home({
         if (!showRegistrationForm) {
           return (
             /* Dynamic Announcement Card from the active semester state */
-            <div id="registration_announcement" className="bg-white rounded-3xl border border-brand-primary/10 shadow-md relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-brand-primary/20">
-              {/* Decorative background grid and glowing circles */}
-              <div className="absolute right-0 top-0 -mr-16 -mt-16 w-48 h-48 rounded-full bg-brand-primary/5 blur-2xl pointer-events-none" />
-              <div className="absolute left-0 bottom-0 -ml-16 -mb-16 w-48 h-48 rounded-full bg-emerald-500/5 blur-2xl pointer-events-none" />
+            <div id="registration_announcement" className="relative group bg-white rounded-3xl border border-brand-primary/10 shadow-[0_20px_50px_-12px_rgba(139,92,246,0.12)] hover:border-brand-primary/20 overflow-hidden animate-fade-in transition-all duration-300">
               
-              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-brand-primary via-emerald-500 to-amber-500" />
-              
-              <div className="p-6 sm:p-8">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-gradient-to-br from-brand-primary/10 to-emerald-500/10 rounded-2xl flex items-center justify-center text-brand-primary shadow-inner shrink-0">
-                      <Award className="w-7 h-7 text-brand-primary animate-pulse" />
+              {/* Dark Top Header Section */}
+              <div className="relative bg-brand-dark text-white p-6 sm:p-8 border-b-2 border-brand-warm overflow-hidden">
+                {/* Decorative Soft Accents / Glow */}
+                <div className="absolute top-0 right-0 -tr-10 w-64 h-64 bg-brand-warm/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute bottom-0 left-0 -bl-10 w-64 h-64 bg-brand-primary/25 rounded-full blur-2xl pointer-events-none" />
+                
+                {/* Geometric Watermark SVG */}
+                <div className="absolute inset-0 opacity-[0.04] pointer-events-none" dir="ltr">
+                  <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+                    <defs>
+                      <pattern id="islamic-grid-header" width="60" height="60" patternUnits="userSpaceOnUse">
+                        <path d="M 30 0 L 60 30 L 30 60 L 0 30 Z" fill="none" stroke="#FFFFFF" strokeWidth="1" />
+                        <path d="M 0 0 L 60 60 M 60 0 L 0 80" fill="none" stroke="#FFFFFF" strokeWidth="0.5" />
+                        <circle cx="30" cy="30" r="8" fill="none" stroke="#FFFFFF" strokeWidth="1" />
+                      </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#islamic-grid-header)" />
+                  </svg>
+                </div>
+
+                {/* Header Content */}
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="flex items-center gap-4.5 bg-transparent">
+                    {/* Prestigious Golden-bordered Icon Container */}
+                    <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-[#FBBF24] shadow-[0_8px_20px_-4px_rgba(251,191,36,0.3)] shrink-0 transition-transform duration-300 group-hover:scale-105 border border-white/25">
+                      <Award className="w-8 h-8 text-[#FBBF24] animate-pulse" />
                     </div>
+                    
                     <div>
-                      {/* Active Status Badge */}
-                      <span className={`inline-flex items-center gap-1.5 text-[10px] uppercase font-black px-3 py-1 rounded-full border ${
+                      {/* Glistening Active Status Badge */}
+                      <span className={`inline-flex items-center gap-2 text-[10px] sm:text-xs font-black px-3.5 py-1.5 rounded-full border transition-all duration-300 ${
                         isRegistrationClosed 
-                          ? 'bg-rose-50 text-rose-700 border-rose-100' 
-                          : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                          ? 'bg-rose-500/20 text-rose-300 border-rose-400/30 shadow-[0_4px_12px_rgba(244,63,94,0.15)]' 
+                          : 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30 shadow-[0_4px_15px_rgba(16,185,129,0.25)]'
                       }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${isRegistrationClosed ? 'bg-rose-500' : 'bg-emerald-500'}`} />
-                        {isRegistrationClosed ? tField('انتهت فترة التسجيل', 'Registration Stopped') : tField('متاح للتسجيل الآن ✦', 'Registration Open Now ✦')}
+                        <span className="relative flex h-2 w-2">
+                          {!isRegistrationClosed && (
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          )}
+                          <span className={`relative inline-flex rounded-full h-2 w-2 ${isRegistrationClosed ? 'bg-rose-400' : 'bg-emerald-400'}`}></span>
+                        </span>
+                        <span className="tracking-wide font-sans">
+                          {isRegistrationClosed ? tField('انتهت فترة التسجيل', 'Registration Stopped') : tField('متاح للتسجيل الآن ✦', 'Registration Open Now ✦')}
+                        </span>
                       </span>
-                      <h2 className="text-xl sm:text-2xl font-black text-brand-dark mt-2 tracking-tight">
+                      
+                      {/* Semester Title - Prominent Serif (Amiri) */}
+                      <h2 className="text-2xl sm:text-3.5xl font-bold text-[#FBBF24] mt-2.5 tracking-tight font-serif leading-tight drop-shadow-md">
                         {activeSem.title}
                       </h2>
                     </div>
                   </div>
 
-                  <div className="flex flex-col xs:flex-row md:items-end gap-2.5">
-                    <div className="text-start md:text-end">
-                      <span className="text-[10px] text-slate-400 font-extrabold uppercase block tracking-wider">{tField('حالة استلام الطلبات:', 'Live Intake State:')}</span>
-                      <span className={`text-[12px] font-black inline-flex items-center gap-1.5 mt-1 ${isRegistrationClosed ? 'text-rose-600' : 'text-emerald-700'}`}>
-                        {isRegistrationClosed ? (
-                          <span>{tField('المقاعد مكتملة 🔒', 'All Seats Closed 🔒')}</span>
-                        ) : (
-                          <>
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
-                            <span>{tField('استلام فوري للرغبات دائم 🟢', 'Intake Active & Live 🟢')}</span>
-                          </>
-                        )}
-                      </span>
+                  {/* Decorative Badge */}
+                  <div className="flex items-center self-start md:self-auto gap-3">
+                    <div className="bg-[#FBBF24] text-brand-dark px-4.5 py-2.5 rounded-2xl font-black text-sm shadow-[0_6px_20px_rgba(251,191,36,0.25)] flex items-center gap-2 border border-[#FBBF24]/30 transition-all duration-300 group-hover:scale-105">
+                      <span className="opacity-40">✦</span>
+                      <span>{tField('فصل ', 'Sem ')}{activeSem.title.match(/\d+/)?.[0] || '٦٠'}</span>
+                      <span className="opacity-40">✦</span>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="py-6">
-                  <p className="text-gray-600 text-sm leading-relaxed text-justify font-medium">
+              {/* Main Body Section */}
+              <div className="p-6 sm:p-10 relative z-10 bg-white">
+
+                {/* Blockquote-styled Description Container */}
+                <div className="mb-8 p-5 bg-brand-neutral/30 border-l-4 rtl:border-l-0 rtl:border-r-4 border-brand-warm rounded-r-xl rtl:rounded-r-none rtl:rounded-l-xl text-gray-700 leading-relaxed text-sm sm:text-base text-justify font-sans">
+                  <p className="font-medium text-slate-800">
                     {activeSem.description}
                   </p>
                 </div>
 
-                <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-2 text-xs text-slate-400 font-bold">
-                    <span>📅</span>
-                    <span>
-                      {isRegistrationClosed 
-                        ? tField('تجاوزنا المهلة المحددة بالفصل الحالي.', 'Has exceeded deadline parameters for active semester.')
-                        : tField('سجلي لتأمين مقعد حلقة التسميع فوراً.', 'Register now to secure your perfect circle placement.')
-                      }
-                    </span>
-                  </div>
-                  
+                {/* Footer and CTA button (Stacked structure for cleaner presentation) */}
+                <div className="pt-6 border-t border-slate-100 flex flex-col items-center w-full font-sans">
                   <button
                     id="start_registration_btn"
                     disabled={isRegistrationClosed}
                     onClick={() => setShowRegistrationForm(true)}
-                    className={`w-full sm:w-auto px-8 py-4 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all duration-300 transform ${
+                    className={`w-full px-8 py-4.5 rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-3 transition-all duration-300 transform outline-none border ${
                       isRegistrationClosed 
-                        ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed select-none'
-                        : 'bg-brand-primary hover:bg-brand-accent text-white cursor-pointer shadow-md hover:-translate-y-0.5 active:translate-y-0 hover:ring-4 hover:ring-brand-primary/20'
+                        ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed select-none'
+                        : 'bg-brand-primary hover:bg-brand-accent text-white cursor-pointer shadow-[0_12px_28px_rgba(139,92,246,0.25)] hover:shadow-[0_16px_36px_rgba(139,92,246,0.35)] hover:ring-4 hover:ring-brand-warm/35 border-transparent'
                     }`}
                   >
                     <span>{tField('البدء برصد الرغبات وحجز المواعيد ✦', 'Start Preferences Submission Grid ✦')}</span>
