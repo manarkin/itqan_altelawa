@@ -59,8 +59,11 @@ export default function Register({
   const [teacherUsername, setTeacherUsername] = useState('');
   const [teacherPassword, setTeacherPassword] = useState('');
   const [teacherConfirmPassword, setTeacherConfirmPassword] = useState('');
-  const [teacherCertifications, setTeacherCertifications] = useState('');
   const [teacherId, setTeacherId] = useState('');
+  const [teacherCollege, setTeacherCollege] = useState('');
+  const [teacherManualCollege, setTeacherManualCollege] = useState('');
+  const [teacherLevel, setTeacherLevel] = useState('طالبة اقراء');
+  const [teacherCohort, setTeacherCohort] = useState('not_applicable');
 
   const isAr = lang === 'ar';
   const tField = (ar: string, en: string) => isAr ? ar : en;
@@ -120,6 +123,11 @@ export default function Register({
     e.preventDefault();
 
     if (regRole === 'student') {
+      if (studentPassword.length < 6) {
+        alert(tField('يجب ألا تقل كلمة المرور عن 6 أحرف!', 'Password cannot be less than 6 characters!'));
+        return;
+      }
+
       if (studentPassword !== studentConfirmPassword) {
         alert(tField('كلمتا المرور غير متطابقتين!', 'Passwords do not match!'));
         return;
@@ -164,6 +172,11 @@ export default function Register({
         setUser(newUser);
       }
     } else {
+      if (teacherPassword.length < 6) {
+        alert(tField('يجب ألا تقل كلمة المرور عن 6 أحرف!', 'Password cannot be less than 6 characters!'));
+        return;
+      }
+
       if (teacherPassword !== teacherConfirmPassword) {
         alert(tField('كلمتا المرور غير متطابقتين!', 'Passwords do not match!'));
         return;
@@ -185,10 +198,10 @@ export default function Register({
         email: teacherEmail,
         isEnrolled: false,
         phone: teacherPhone,
-        college: 'Education',
-        cohort: '',
+        college: teacherCollege === 'أخرى' ? (teacherManualCollege || 'Other') : (teacherCollege || 'Education'),
+        cohort: teacherCohort,
         employeeId: finalTeacherId,
-        level: 'مجازة',
+        level: teacherLevel,
         username: finalTeacherId,
         password: teacherPassword,
         avatar: 'https://picsum.photos/seed/teacher_new/200/200',
@@ -266,37 +279,45 @@ export default function Register({
                 {tField('يرجى تحديد فئة الطالبة أولاً للقبول المقيد:', 'Please select student category first:')}
               </h5>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 select-none">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 select-none">
                 {/* undergrad block */}
                 <div 
-                  className={`p-4 rounded-xl border-2 cursor-pointer text-center hover:scale-102 transition-transform ${
+                  className={`p-2.5 px-4 rounded-xl border-2 cursor-pointer hover:scale-101 transition-transform ${
                     regStudentType === 'undergrad' 
                       ? 'border-brand-primary bg-brand-primary/[0.05]' 
                       : 'border-gray-150 bg-white'
                   }`}
                   onClick={() => setRegStudentType('undergrad')}
                 >
-                  <UserIcon className="text-brand-primary w-6 h-6 mx-auto mb-2" />
-                  <h6 className="font-extrabold text-brand-dark text-sm mb-0.5">
-                    {tField('طالبة دراسات أولية (بكالوريوس)', 'Undergraduate Student')}
-                  </h6>
-                  <p className="text-[0.65rem] text-gray-400 font-bold mb-0">SQU Bachelor Students Only</p>
+                  <div className="flex items-center gap-3">
+                    <UserIcon className="text-brand-primary w-5 h-5 shrink-0" />
+                    <div className="text-start">
+                      <h6 className="font-black text-brand-dark text-[11px] sm:text-xs mb-0.5">
+                        {tField('طالبة دراسات أولية (بكالوريوس)', 'Undergraduate Student')}
+                      </h6>
+                      <p className="text-[9px] text-gray-400 font-bold leading-none">SQU Bachelor Students</p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* postgraduate / work block */}
                 <div 
-                  className={`p-4 rounded-xl border-2 cursor-pointer text-center hover:scale-102 transition-transform ${
+                  className={`p-2.5 px-4 rounded-xl border-2 cursor-pointer hover:scale-101 transition-transform ${
                     regStudentType === 'postgrad' 
                       ? 'border-brand-primary bg-brand-primary/[0.05]' 
                       : 'border-gray-150 bg-white'
                   }`}
                   onClick={() => setRegStudentType('postgrad')}
                 >
-                  <Briefcase className="text-brand-primary w-6 h-6 mx-auto mb-2" />
-                  <h6 className="font-extrabold text-brand-dark text-sm mb-0.5">
-                    {tField('طالبة دراسات عليا / موظفة من الجامعة', 'Postgraduate / SQU Employee')}
-                  </h6>
-                  <p className="text-[0.65rem] text-gray-400 font-bold mb-0">SQU Employee as postgraduate seekers</p>
+                  <div className="flex items-center gap-3">
+                    <Briefcase className="text-brand-primary w-5 h-5 shrink-0" />
+                    <div className="text-start">
+                      <h6 className="font-black text-brand-dark text-[11px] sm:text-xs mb-0.5">
+                        {tField('طالبة دراسات عليا / موظفة من الجامعة', 'Postgraduate / SQU Employee')}
+                      </h6>
+                      <p className="text-[9px] text-gray-400 font-bold leading-none">Postgrad / SQU Employee</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -599,37 +620,31 @@ export default function Register({
                 </div>
               )}
 
-              {/* Account Credentials Selection (Last step before agreement) */}
-              <div className="p-5 rounded-2xl bg-slate-50 border border-gray-150 space-y-4">
-                <h6 className="font-extrabold text-brand-dark text-sm border-b border-gray-150 pb-2 flex items-center gap-1.5">
-                  <span>🔒</span>
-                  <span>{tField('بيانات اعتماد الحساب والدخول', 'Account Security & Sign In Credentials')}</span>
-                </h6>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-black text-gray-400 block mb-1">
-                      {tField('كلمة المرور', 'Account Password')}
-                    </label>
-                    <MaskedPasswordInput 
-                      value={studentPassword}
-                      onChange={setStudentPassword}
-                      className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
-                      required 
-                      placeholder="••••••••"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-black text-gray-400 block mb-1">
-                      {tField('تأكيد كلمة المرور', 'Confirm Password')}
-                    </label>
-                    <MaskedPasswordInput 
-                      value={studentConfirmPassword}
-                      onChange={setStudentConfirmPassword}
-                      className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
-                      required 
-                      placeholder="••••••••"
-                    />
-                  </div>
+              {/* Password credentials placed lastly directly as plain inputs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-black text-gray-400 block mb-1">
+                    {tField('كلمة المرور', 'Account Password')}
+                  </label>
+                  <MaskedPasswordInput 
+                    value={studentPassword}
+                    onChange={setStudentPassword}
+                    className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
+                    required 
+                    placeholder="••••••••"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-black text-gray-400 block mb-1">
+                    {tField('تأكيد كلمة المرور', 'Confirm Password')}
+                  </label>
+                  <MaskedPasswordInput 
+                    value={studentConfirmPassword}
+                    onChange={setStudentConfirmPassword}
+                    className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
+                    required 
+                    placeholder="••••••••"
+                  />
                 </div>
               </div>
 
@@ -746,49 +761,107 @@ export default function Register({
               </div>
             </div>
 
-            <div>
-              <label className="text-xs font-black text-gray-400 block mb-1">{tField('الشهادات الحاصلة عليها والإجازات السابقة بالتفصيل:', 'Certificates & Previous Ijaza:')}</label>
-              <textarea 
-                value={teacherCertifications}
-                onChange={(e) => setTeacherCertifications(e.target.value)}
-                className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl p-4 text-sm font-bold" 
-                rows={3} 
-                required 
-                placeholder={tField('اذكري الإجازات برواية حفص عن عاصم أو غيرها من القراءات والشهادات الأكاديمية...', 'Mention certificates in Hafs or other recitations in detail...')}
-              />
+            {/* Custom SQU College, Designated Level & Cohort Dropdowns */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="text-xs font-black text-gray-400 block mb-1">
+                  {tField('الكلية أو مجال العمل', 'College or Work Area')}
+                </label>
+                <select 
+                  className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
+                  required
+                  value={teacherCollege}
+                  onChange={(e) => setTeacherCollege(e.target.value)}
+                >
+                  <option value="" disabled>{tField('اختر الكلية أو مجال العمل...', 'Select College or Work Area...')}</option>
+                  {colleges.map((c, idx) => (
+                    <option key={idx} value={c}>{c}</option>
+                  ))}
+                  <option value="أخرى">{tField('أخرى', 'Other')}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-black text-gray-400 block mb-1">
+                  {tField('المستوى / الصفة', 'Level')}
+                </label>
+                <select 
+                  className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
+                  required
+                  value={teacherLevel}
+                  onChange={(e) => setTeacherLevel(e.target.value)}
+                >
+                  <option value="مجازة">{tField('مجازة (Certified / Mujazah)', 'Certified / Mujazah')}</option>
+                  <option value="طالبة اقراء">{tField('طالبة اقراء (Iqraa Student)', 'Iqraa Student')}</option>
+                  <option value="طالبة اقراء في فصلي الأول">{tField('طالبة اقراء في فصلي الأول (Iqraa student in my first semester)', 'Iqraa student in my first semester')}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-black text-gray-400 block mb-1">
+                  {tField('الدفعة الأكاديمية (Cohort Year)', 'Cohort Year')}
+                </label>
+                <select 
+                  value={teacherCohort}
+                  onChange={(e) => setTeacherCohort(e.target.value)}
+                  className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
+                  required 
+                >
+                  <option value="not_applicable">{tField('غير مطبق (Not Applicable)', 'Not Applicable')}</option>
+                  <option value="2026">2026</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                  <option value="2023">2023</option>
+                  <option value="2022">2022</option>
+                  <option value="2021">2021</option>
+                  <option value="2020">2020</option>
+                  <option value="2019">2019</option>
+                  <option value="2018 and before">{tField('2018 وقبل ذلك', '2018 and before')}</option>
+                </select>
+              </div>
             </div>
 
-            {/* Account Credentials Selection (Last step before submitting) */}
-            <div className="p-5 rounded-2xl bg-slate-50 border border-gray-150 space-y-4">
-              <h6 className="font-extrabold text-brand-dark text-sm border-b border-gray-150 pb-2 flex items-center gap-1.5">
-                <span>🔒</span>
-                <span>{tField('بيانات اعتماد الحساب والدخول للمعلمة', 'Account Security & Sign In Credentials')}</span>
-              </h6>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-black text-gray-400 block mb-1">
-                    {tField('كلمة المرور', 'Account Password')}
-                  </label>
-                  <MaskedPasswordInput 
-                    value={teacherPassword}
-                    onChange={setTeacherPassword}
-                    className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
-                    required 
-                    placeholder="••••••••"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-black text-gray-400 block mb-1">
-                    {tField('تأكيد كلمة المرور', 'Confirm Password')}
-                  </label>
-                  <MaskedPasswordInput 
-                    value={teacherConfirmPassword}
-                    onChange={setTeacherConfirmPassword}
-                    className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
-                    required 
-                    placeholder="••••••••"
-                  />
-                </div>
+            {teacherCollege === 'أخرى' && (
+              <div className="animate-fade-in p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                <label className="text-xs font-black text-gray-400 block mb-1">
+                  {tField('يرجى تحديد الكلية أو مجال العمل الآخر:', 'Please specify other College or Work Area:')}
+                </label>
+                <input 
+                  type="text" 
+                  value={teacherManualCollege}
+                  onChange={(e) => setTeacherManualCollege(e.target.value)}
+                  className="w-full bg-white border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold" 
+                  placeholder={tField('مثال: جهة خارجية أو مجال عمل آخر', 'e.g. External organization or other field')}
+                  required
+                />
+              </div>
+            )}
+
+            {/* Password credentials placed lastly directly as plain inputs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-black text-gray-400 block mb-1">
+                  {tField('كلمة المرور', 'Account Password')}
+                </label>
+                <MaskedPasswordInput 
+                  value={teacherPassword}
+                  onChange={setTeacherPassword}
+                  className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
+                  required 
+                  placeholder="••••••••"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-black text-gray-400 block mb-1">
+                  {tField('تأكيد كلمة المرور', 'Confirm Password')}
+                </label>
+                <MaskedPasswordInput 
+                  value={teacherConfirmPassword}
+                  onChange={setTeacherConfirmPassword}
+                  className="w-full bg-slate-50 border border-gray-150 focus:border-brand-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm font-bold text-ltr" 
+                  required 
+                  placeholder="••••••••"
+                />
               </div>
             </div>
 

@@ -21,6 +21,10 @@ export default function Login({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (password && password.length < 6) {
+      alert(tField('يجب ألا تقل كلمة المرور عن 6 أحرف!', 'Password cannot be less than 6 characters!'));
+      return;
+    }
     if (email) {
       handleLogin(email, password);
     }

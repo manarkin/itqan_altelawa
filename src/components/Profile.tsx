@@ -93,6 +93,10 @@ export default function Profile({
         alert(tField('يرجى إدخال كلمة المرور الجديدة!', 'Please enter the new password!'));
         return;
       }
+      if (newPassword.length < 6) {
+        alert(tField('يجب ألا تقل كلمة المرور عن 6 أحرف!', 'Password cannot be less than 6 characters!'));
+        return;
+      }
       if (newPassword !== confirmPassword) {
         alert(tField('كلمتا المرور غير متطابقتين!', 'Passwords do not match!'));
         return;
