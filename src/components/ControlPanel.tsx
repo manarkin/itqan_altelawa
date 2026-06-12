@@ -377,9 +377,11 @@ export default function ControlPanel({
   // Active filter states
   const [studentSearch, setStudentSearch] = useState('');
   const [studentFilter, setStudentFilter] = useState<'all' | 'pending' | 'approved'>('all');
+  const [studentLevelSelectFilter, setStudentLevelSelectFilter] = useState<string>('all');
   
   const [teacherSearch, setTeacherSearch] = useState('');
   const [teacherFilter, setTeacherFilter] = useState<'all' | 'pending' | 'approved'>('all');
+  const [teacherLevelSelectFilter, setTeacherLevelSelectFilter] = useState<string>('all');
 
   // Trigger simulated play progress
   React.useEffect(() => {
@@ -459,7 +461,7 @@ export default function ControlPanel({
       case 'INTERMEDIATE':
       case 'تمهيدية':
       case 'متوسطة':
-        return 'تمهيدي / متوسطة';
+        return 'تمهيدية';
       case 'ADVANCED':
       case 'متقدمة':
         return 'متقدمة';
@@ -800,25 +802,19 @@ export default function ControlPanel({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
-                      <div className="bg-white p-3 rounded-xl border border-gray-150 flex flex-col justify-between">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                      <div className="bg-white p-3 rounded-xl border border-gray-150 flex flex-col justify-center">
                         <div>
                           <span className="text-gray-400 font-bold block mb-1">{tLabel('تاريخ الإعلان ونشره:', 'Release Time:')}</span>
-                          <span className="text-brand-dark font-black block font-mono">
+                          <span className="text-brand-dark font-extrabold block font-mono text-[13px]">
                             {new Date(sem.announcementTime).toLocaleString(isAr ? 'ar-OM' : 'en-US')}
                           </span>
                         </div>
                       </div>
 
-                      <div className="bg-white p-3 rounded-xl border border-gray-150 flex flex-col justify-between">
+                      <div className="bg-white p-3 rounded-xl border border-gray-150 flex flex-col justify-center">
                         <div>
                           <span className="text-gray-400 font-bold block mb-1">{tLabel('الموعد النهائي التلقائي:', 'Automated Lock:')}</span>
-                          <span className="text-rose-600 font-black block font-mono text-ltr">
-                            {sem.stopRegistrationTime ? new Date(sem.stopRegistrationTime).toLocaleString(isAr ? 'ar-OM' : 'en-US') : tLabel('توقيت يدوي بمفتاح', 'Locked Manually')}
-                          </span>
-                        </div>
-                        <div className="mt-3 pt-2.5 border-t border-slate-100">
-                          <label className="text-[10px] text-gray-400 font-black block mb-1">{tLabel('تعديل الموعد النهائي ✏️:', 'Change Deadline ✏️:')}</label>
                           <input
                             type="datetime-local"
                             value={sem.stopRegistrationTime ? new Date(new Date(sem.stopRegistrationTime).getTime() - new Date(sem.stopRegistrationTime).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
@@ -830,17 +826,8 @@ export default function ControlPanel({
                                 ));
                               }
                             }}
-                            className="w-full text-[10px] font-mono bg-slate-50 border border-gray-200 rounded-lg p-1.5 font-bold focus:outline-none focus:border-brand-primary"
+                            className="w-full text-xs font-mono bg-slate-50 border border-gray-200 rounded-lg p-2 font-bold focus:outline-none focus:border-brand-primary font-black text-slate-700"
                           />
-                        </div>
-                      </div>
-
-                      <div className="bg-white p-3 rounded-xl border border-gray-150 md:col-span-2 flex flex-col justify-between">
-                        <div>
-                          <span className="text-gray-400 font-bold block mb-1">{tLabel('ملاحظات والضوابط بالبطاقة:', 'Rules Display Preview:')}</span>
-                          <p className="text-brand-dark font-bold leading-normal text-[11px] line-clamp-4" title={sem.rules}>
-                            {sem.rules || tLabel('لا توجد شروط خاصة مدمجة.', 'No core guidelines configured.')}
-                          </p>
                         </div>
                       </div>
                     </div>
@@ -871,7 +858,22 @@ export default function ControlPanel({
       if (studentFilter === 'pending') matchesFilter = !isApproved;
       if (studentFilter === 'approved') matchesFilter = isApproved;
 
-      return matchesSearch && matchesFilter;
+      // Level Filter Match
+      let matchesLvl = true;
+      if (studentLevelSelectFilter !== 'all') {
+        const lvlStr = (stud.level || '').toUpperCase();
+        if (studentLevelSelectFilter === 'UNKNOWN') {
+          matchesLvl = lvlStr.includes('غير مصنفة') || lvlStr === '' || lvlStr.includes('NOT') || lvlStr.includes('UNKNOWN');
+        } else if (studentLevelSelectFilter === 'BEGINNER') {
+          matchesLvl = lvlStr.includes('مبتد') || lvlStr.includes('BEGINNE');
+        } else if (studentLevelSelectFilter === 'INTERMEDIATE') {
+          matchesLvl = lvlStr.includes('تمهيد') || lvlStr.includes('INTERMED') || lvlStr.includes('INTRODUC') || lvlStr.includes('متوسط');
+        } else if (studentLevelSelectFilter === 'ADVANCED') {
+          matchesLvl = lvlStr.includes('متقدم') || lvlStr.includes('ADVANC');
+        }
+      }
+
+      return matchesSearch && matchesFilter && matchesLvl;
     });
 
     return (
@@ -911,31 +913,37 @@ export default function ControlPanel({
             />
           </div>
 
-          {/* Filtering segmented selectors */}
-          <div className="flex gap-2 w-full md:w-auto justify-start md:justify-end">
-            <button
-              onClick={() => setStudentFilter('all')}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold cursor-pointer transition-all ${studentFilter === 'all' ? 'bg-brand-primary text-white' : 'bg-slate-50 text-gray-500 border border-slate-150 hover:bg-slate-100'}`}
+          {/* Filtering dropdown selections (Two unified menus) */}
+          <div className="flex flex-col sm:flex-row gap-2.5 w-full md:w-auto">
+            {/* 1. Status Dropdown */}
+            <select
+              value={studentFilter}
+              onChange={(e) => setStudentFilter(e.target.value as any)}
+              className="bg-slate-50 border border-slate-200 focus:border-brand-primary focus:outline-none rounded-xl px-3.5 py-2 text-xs font-black text-slate-700 cursor-pointer"
             >
-              {lang === 'ar' ? 'الكل' : 'All'} ({allStudents.length})
-            </button>
-            <button
-              onClick={() => setStudentFilter('pending')}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold cursor-pointer transition-all ${studentFilter === 'pending' ? 'bg-amber-500 text-white' : 'bg-slate-50 text-gray-500 border border-slate-150 hover:bg-slate-100'}`}
+              <option value="all">{lang === 'ar' ? `جميع الحالات (${allStudents.length})` : `All Statuses (${allStudents.length})`}</option>
+              <option value="pending">{lang === 'ar' ? `غير مفحوصة (${allStudents.filter(s => !s.approved).length})` : `Not Checked (${allStudents.filter(s => !s.approved).length})`}</option>
+              <option value="approved">{lang === 'ar' ? `مفحوصة ومعتمدة (${allStudents.filter(s => s.approved).length})` : `Checked & Approved (${allStudents.filter(s => s.approved).length})`}</option>
+            </select>
+
+            {/* 2. Level Dropdown */}
+            <select
+              value={studentLevelSelectFilter}
+              onChange={(e) => setStudentLevelSelectFilter(e.target.value)}
+              className="bg-slate-50 border border-slate-200 focus:border-brand-primary focus:outline-none rounded-xl px-3.5 py-2 text-xs font-black text-slate-700 cursor-pointer"
             >
-              {lang === 'ar' ? 'غير مفحوصة ⏳' : 'Not Checked ⏳'} ({allStudents.filter(s => !s.approved).length})
-            </button>
-            <button
-              onClick={() => setStudentFilter('approved')}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold cursor-pointer transition-all ${studentFilter === 'approved' ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-gray-500 border border-slate-150 hover:bg-slate-100'}`}
-            >
-              {lang === 'ar' ? 'مفحوصة ومعتمدة ✓' : 'Checked & Approved ✓'} ({allStudents.filter(s => s.approved).length})
-            </button>
+              <option value="all">{lang === 'ar' ? 'جميع المستويات' : 'All Levels'}</option>
+              <option value="UNKNOWN">{lang === 'ar' ? 'غير مصنفة' : 'Not Categorized'}</option>
+              <option value="BEGINNER">{lang === 'ar' ? 'مبتدئة' : 'Beginner'}</option>
+              <option value="INTERMEDIATE">{lang === 'ar' ? 'تمهيدية' : 'Introductory'}</option>
+              <option value="ADVANCED">{lang === 'ar' ? 'متقدمة' : 'Advanced'}</option>
+            </select>
           </div>
         </div>
 
         {/* Display students list cards */}
-        <div className="space-y-4 text-start">
+        <div className="w-full overflow-x-auto pb-4 scrollbar-thin">
+          <div className="min-w-[550px] md:min-w-0 space-y-4 text-start pr-1">
           {filteredStudents.length === 0 ? (
             <div className="p-12 text-center bg-white rounded-3xl border border-brand-primary/10">
               <Users className="w-12 h-12 text-gray-300 mx-auto mb-3 opacity-30" />
@@ -984,30 +992,43 @@ export default function ControlPanel({
                           </span>
                         ) : (
                           <span className="text-[10px] bg-amber-50 text-amber-600 px-2.5 py-0.5 rounded-md border border-amber-100 font-black flex items-center gap-1 animate-pulse">
-                            ⏳ {lang === 'ar' ? 'غير مفحوصة (جديد)' : 'Not Checked (New)'}
-                          </span>
-                        )}
-
-                        {stud.isNew && (
-                          <span className="text-[10px] bg-sky-50 text-sky-600 px-2 py-0.5 rounded-md border border-sky-100 font-black">
-                            {lang === 'ar' ? 'تلاوة جديدة' : 'New Reciter'}
+                            ⏳ {lang === 'ar' ? 'غير مفحوصة' : 'Not Checked'}
                           </span>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-4 text-xs text-gray-400 font-bold font-mono">
-                        <span>📱 {stud.phone}</span>
-                        <span>✉️ {stud.email}</span>
-                        <span>🆔 {stud.studentId}</span>
+                      <div className="flex items-center gap-4 text-xs text-slate-500 font-bold font-mono flex-wrap">
+                        <span className="flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">
+                          <span>📱</span>
+                          <span dir="ltr" className="text-start tracking-wider">{stud.phone}</span>
+                        </span>
+                        {isExpanded && (
+                          <>
+                            <span className="bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">✉️ {stud.email}</span>
+                            <span className="bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">🆔 {stud.studentId || 'N/A'}</span>
+                          </>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3">
                       <div className="text-end hidden sm:block">
-                        <small className="text-slate-400 block text-[10px] font-black uppercase tracking-wider">
+                        <small className="text-slate-400 block text-[10px] font-black uppercase tracking-wider mb-0.5">
                           {lang === 'ar' ? 'المستوى' : 'Level'}
                         </small>
-                        <span className="text-xs bg-brand-neutral text-brand-primary px-3 py-1 rounded-full border border-brand-primary/10 font-extrabold block mt-0.5">
+                        <span className={`inline-block px-3 py-1 rounded-xl text-[11px] font-black border tracking-wide whitespace-nowrap shadow-3xs ${
+                          (() => {
+                            const lvl = (stud.level || '').toUpperCase();
+                            if (lvl.includes('BEGIN') || lvl.includes('مبتد')) {
+                              return 'bg-amber-50 text-amber-700 border-amber-200';
+                            } else if (lvl.includes('INTERMED') || lvl.includes('تمهيد') || lvl.includes('متوسط') || lvl.includes('TAMKEEN') || lvl.includes('تمكين')) {
+                              return 'bg-sky-50 text-sky-700 border-sky-100';
+                            } else if (lvl.includes('ADVANC') || lvl.includes('متقدم')) {
+                              return 'bg-emerald-50 text-emerald-700 border-emerald-150';
+                            }
+                            return 'bg-purple-50 text-purple-700 border-purple-200';
+                          })()
+                        }`}>
                           {lang === 'ar' ? getArabicLevelName(stud.level) : stud.level}
                         </span>
                       </div>
@@ -1306,6 +1327,7 @@ export default function ControlPanel({
               );
             })
           )}
+          </div>
         </div>
       </div>
     );
@@ -1326,7 +1348,18 @@ export default function ControlPanel({
       if (teacherFilter === 'pending') matchesFilter = !isApproved;
       if (teacherFilter === 'approved') matchesFilter = isApproved;
 
-      return matchesSearch && matchesFilter;
+      // Level Filter Match
+      let matchesLvl = true;
+      if (teacherLevelSelectFilter !== 'all') {
+        const lvlStr = (teach.level || '').toLowerCase();
+        if (teacherLevelSelectFilter === 'IQRAA') {
+          matchesLvl = lvlStr.includes('اقرا') || lvlStr.includes('iqra');
+        } else if (teacherLevelSelectFilter === 'MUJAZA') {
+          matchesLvl = lvlStr.includes('مجاز') || lvlStr.includes('mujaz');
+        }
+      }
+
+      return matchesSearch && matchesFilter && matchesLvl;
     });
 
     return (
@@ -1365,135 +1398,132 @@ export default function ControlPanel({
             />
           </div>
 
-          <div className="flex gap-2 w-full md:w-auto justify-start md:justify-end">
-            <button
-              onClick={() => setTeacherFilter('all')}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold cursor-pointer transition-all ${teacherFilter === 'all' ? 'bg-brand-primary text-white' : 'bg-slate-50 text-gray-500 border border-slate-150 hover:bg-slate-100'}`}
+          {/* Filtering dropdown selections for teachers */}
+          <div className="flex flex-col sm:flex-row gap-2.5 w-full md:w-auto">
+            {/* 1. Status Dropdown */}
+            <select
+              value={teacherFilter}
+              onChange={(e) => setTeacherFilter(e.target.value as any)}
+              className="bg-slate-50 border border-slate-200 focus:border-brand-primary focus:outline-none rounded-xl px-3.5 py-2 text-xs font-black text-slate-700 cursor-pointer text-start"
             >
-              {lang === 'ar' ? 'الكل' : 'All'} ({allTeachers.length})
-            </button>
-            <button
-              onClick={() => setTeacherFilter('pending')}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold cursor-pointer transition-all ${teacherFilter === 'pending' ? 'bg-amber-500 text-white' : 'bg-slate-50 text-gray-500 border border-slate-150 hover:bg-slate-100'}`}
+              <option value="all">{lang === 'ar' ? `جميع الحالات (${allTeachers.length})` : `All Statuses (${allTeachers.length})`}</option>
+              <option value="pending">{lang === 'ar' ? `غير مفحوصة (${allTeachers.filter(t => !t.approved).length})` : `Not Approved/Pending (${allTeachers.filter(t => !t.approved).length})`}</option>
+              <option value="approved">{lang === 'ar' ? `مفحوصة ومعتمدة (${allTeachers.filter(t => t.approved).length})` : `Checked & Approved (${allTeachers.filter(t => t.approved).length})`}</option>
+            </select>
+
+            {/* 2. Level Dropdown */}
+            <select
+              value={teacherLevelSelectFilter}
+              onChange={(e) => setTeacherLevelSelectFilter(e.target.value)}
+              className="bg-slate-50 border border-slate-200 focus:border-brand-primary focus:outline-none rounded-xl px-3.5 py-2 text-xs font-black text-slate-700 cursor-pointer text-start"
             >
-              {lang === 'ar' ? 'لم يرخص بعد ⏳' : 'Not Checked ⏳'} ({allTeachers.filter(t => !t.approved).length})
-            </button>
-            <button
-              onClick={() => setTeacherFilter('approved')}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold cursor-pointer transition-all ${teacherFilter === 'approved' ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-gray-500 border border-slate-150 hover:bg-slate-100'}`}
-            >
-              {lang === 'ar' ? 'مرخص معتمد ✓' : 'Checked & Approved ✓'} ({allTeachers.filter(t => t.approved).length})
-            </button>
+              <option value="all">{lang === 'ar' ? 'جميع التصنيفات' : 'All Designations'}</option>
+              <option value="IQRAA">{lang === 'ar' ? 'طالبة اقراء' : 'Iqraa Student'}</option>
+              <option value="MUJAZA">{lang === 'ar' ? 'مجازة' : 'Certified / Mujazah'}</option>
+            </select>
           </div>
         </div>
 
-        {/* Display teachers list */}
-        <div className="space-y-4 text-start">
-          {filteredTeachers.length === 0 ? (
-            <div className="p-12 text-center bg-white rounded-3xl border border-brand-primary/10">
-              <Users className="w-12 h-12 text-gray-300 mx-auto mb-3 opacity-30" />
-              <p className="text-gray-400 font-bold">
-                {lang === 'ar' ? 'لا توجد معلمات مطابقة لهذا البحث.' : 'No teachers match your query.'}
-              </p>
-            </div>
-          ) : (
-            filteredTeachers.map((teach, idx) => {
-              const uKey = teach.employeeId || teach.email;
-              const isExpanded = editingId === uKey;
+        {/* Display teachers list with horizontal swipe scroll support on mobile */}
+        <div className="w-full overflow-x-auto pb-4 scrollbar-thin">
+          <div className="min-w-[600px] md:min-w-0 space-y-4 text-start pr-1">
+            {filteredTeachers.length === 0 ? (
+              <div className="p-12 text-center bg-white rounded-3xl border border-brand-primary/10">
+                <Users className="w-12 h-12 text-gray-300 mx-auto mb-3 opacity-30" />
+                <p className="text-gray-400 font-bold">
+                  {lang === 'ar' ? 'لا توجد معلمات مطابقة لهذا البحث.' : 'No teachers match your query.'}
+                </p>
+              </div>
+            ) : (
+              filteredTeachers.map((teach, idx) => {
+                const uKey = teach.employeeId || teach.email;
+                const isExpanded = editingId === uKey;
 
-              return (
-                <div 
-                  key={idx} 
-                  className={`bg-white rounded-3xl border transition-all duration-300 overflow-hidden ${
-                    isExpanded 
-                      ? 'border-brand-primary ring-2 ring-brand-primary/10 shadow-lg' 
-                      : 'border-brand-primary/10 hover:border-brand-primary/30 shadow-xs'
-                  }`}
-                >
-                  {/* Summary card item */}
+                return (
                   <div 
-                    className="p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 cursor-pointer select-none"
-                    onClick={() => {
-                      if (isExpanded) {
-                        setEditingId(null);
-                        setEditForm(null);
-                      } else {
-                        handleStartEdit(teach, uKey);
-                      }
-                    }}
+                    key={idx} 
+                    className={`bg-white rounded-3xl border transition-all duration-300 overflow-hidden ${
+                      isExpanded 
+                        ? 'border-brand-primary ring-2 ring-brand-primary/10 shadow-lg' 
+                        : 'border-brand-primary/10 hover:border-brand-primary/30 shadow-xs'
+                    }`}
                   >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="text-sm sm:text-base font-extrabold text-brand-dark">
-                          {getPreciseFullName(teach)}
-                        </h4>
+                    {/* Summary card item */}
+                    <div 
+                      className="p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 cursor-pointer select-none"
+                      onClick={() => {
+                        if (isExpanded) {
+                          setEditingId(null);
+                          setEditForm(null);
+                        } else {
+                          handleStartEdit(teach, uKey);
+                        }
+                      }}
+                    >
+                      <div className="space-y-2 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-sm sm:text-base font-extrabold text-brand-dark">
+                            {getPreciseFullName(teach)}
+                          </h4>
+                          
+                          {teach.approved ? (
+                            <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-md border border-emerald-100 font-black flex items-center gap-1">
+                              ✓ {lang === 'ar' ? 'معتمد ومفحوص ذو ترخيص' : 'Checked & Approved'}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] bg-amber-50 text-amber-600 px-2.5 py-0.5 rounded-md border border-amber-100 font-black flex items-center gap-1 animate-pulse">
+                              ⏳ {lang === 'ar' ? 'غير مفحوص (معلمة جديدة)' : 'Pending Review (New Teacher)'}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Phone details and conditionally shown Email/ID */}
+                        <div className="flex items-center gap-4 text-xs text-slate-500 font-bold font-mono flex-wrap">
+                          <span className="flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">
+                            <span>📱</span>
+                            <span dir="ltr" className="text-start tracking-wider">{teach.phone}</span>
+                          </span>
+                          {isExpanded && (
+                            <>
+                              <span className="bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">✉️ {teach.email}</span>
+                              <span className="bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">🆔 {teach.employeeId || '---'}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Display elements with arrow at the very end */}
+                      <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 w-full sm:w-auto">
+                        <div className="flex items-center gap-3">
+                          {teach.role === 'ADMIN' && (
+                            <span className="text-[10px] bg-amber-500 text-white px-2.5 py-1 rounded-lg border border-amber-600 font-black block">
+                              👑 {lang === 'ar' ? 'مشرفة إدارية' : 'Admin'}
+                            </span>
+                          )}
+
+                          <div className="text-end">
+                            <small className="text-slate-400 block text-[9px] font-black uppercase tracking-wider mb-0.5 text-start sm:text-end">
+                              {lang === 'ar' ? 'الصفة / الترخيص' : 'Role / Designation'}
+                            </small>
+                            <span className={`inline-block text-[11px] px-3 py-1 rounded-xl border font-black tracking-wide whitespace-nowrap shadow-3xs ${
+                              teach.level === 'طالبة اقراء' 
+                                ? 'bg-sky-50 text-sky-700 border-sky-100' 
+                                : 'bg-purple-50 text-purple-700 border-purple-100'
+                            }`}>
+                              {teach.level === 'طالبة اقراء' ? (lang === 'ar' ? 'طالبة اقراء' : 'Iqraa Student') : (lang === 'ar' ? 'مجازة' : 'Certified / Mujazah')}
+                            </span>
+                          </div>
+                        </div>
                         
-                        {teach.approved ? (
-                          <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-md border border-emerald-100 font-black flex items-center gap-1">
-                            ✓ {lang === 'ar' ? 'معتمد ومفحوص ذو ترخيص' : 'Checked & Approved'}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] bg-amber-50 text-amber-600 px-2.5 py-0.5 rounded-md border border-amber-100 font-black flex items-center gap-1 animate-pulse">
-                            ⏳ {lang === 'ar' ? 'غير مفحوص (معلمة جديدة)' : 'Pending Review (New Teacher)'}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-4 text-xs text-gray-400 font-bold font-mono">
-                        <span>📱 {teach.phone}</span>
-                        <span>✉️ {teach.email}</span>
-                        <span>🆔 {teach.employeeId || '---'}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <div className="flex flex-col items-end shrink-0 select-none">
-                        {teach.role === 'ADMIN' ? (
-                          <span className="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-md border border-amber-600 font-black block">
-                            👑 {lang === 'ar' ? 'مشرفة إدارية' : 'Admin Coordinator'}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md border border-slate-200 font-extrabold block">
-                            {lang === 'ar' ? 'معلمة تلاوة' : 'Teacher'}
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleTeacherAdmin(teach.email);
-                          }}
-                          className={`text-[9px] px-2 py-1 rounded-md font-black block mt-1 transition-all cursor-pointer border hover:scale-102 active:scale-95 select-none ${
-                            teach.role === 'ADMIN'
-                              ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
-                              : 'bg-amber-50 text-amber-650 border-amber-200 hover:bg-amber-100'
-                          }`}
-                        >
-                          {teach.role === 'ADMIN'
-                            ? (lang === 'ar' ? 'إخطار كمعلمة كلاسيكية' : 'Set as Simple Mentor')
-                            : (lang === 'ar' ? 'ترقية لمشرفة نظام 🔑' : 'Promote to Admin 🔑')
-                          }
+                        <button className="p-2 sm:p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-brand-primary transition-all duration-200 border border-slate-100 shadow-3xs hover:scale-105 ml-auto sm:ml-0">
+                          {isExpanded ? <ChevronUp className="w-5 h-5 text-brand-primary" /> : <ChevronDown className="w-5 h-5" />}
                         </button>
                       </div>
-
-                      <div className="text-end hidden sm:block">
-                        <small className="text-slate-400 block text-[10px] font-black uppercase tracking-wider">
-                          {lang === 'ar' ? 'الصفة / الترخيص' : 'Role'}
-                        </small>
-                        <span className="text-xs bg-brand-warm/15 text-brand-dark px-3 py-1 rounded-full border border-brand-warm/25 font-extrabold block mt-0.5">
-                          {teach.level}
-                        </span>
-                      </div>
-                      
-                      <button className="p-2 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors">
-                        {isExpanded ? <ChevronUp className="w-5 h-5 text-brand-primary" /> : <ChevronDown className="w-5 h-5" />}
-                      </button>
                     </div>
-                  </div>
 
-                  {/* Expansion with teachers details form (No ID card and no audio clip, as requested) */}
-                  {isExpanded && editForm && (
-                    <div className="border-t border-gray-100 bg-slate-50/50 p-6 space-y-4">
+                    {/* Expansion with teachers details form (No ID card and no audio clip, as requested) */}
+                    {isExpanded && editForm && (
+                      <div className="border-t border-gray-100 bg-slate-50/50 p-6 space-y-4">
                       
                       <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-xs space-y-4">
                         <h5 className="text-sm font-black text-slate-600 block border-b border-slate-100 pb-2">
@@ -1603,18 +1633,6 @@ export default function ControlPanel({
                               <option value="طالبة اقراء">{lang === 'ar' ? 'طالبة اقراء' : 'Iqraa Student'}</option>
                             </select>
                           </div>
-
-                          <div>
-                            <label className="text-xs font-black text-slate-500 block mb-1">👑 {lang === 'ar' ? 'صلاحية وإشراف النظام' : 'System Account Role'}</label>
-                            <select
-                              value={editForm.role || 'TEACHER'}
-                              onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                              className="w-full bg-slate-50 border border-brand-primary/30 focus:border-brand-primary focus:outline-none rounded-xl px-3 py-2 text-xs font-black text-brand-primary text-start"
-                            >
-                              <option value="TEACHER">{lang === 'ar' ? 'معلمة تلاوة (Teacher)' : 'Recitation Teacher'}</option>
-                              <option value="ADMIN">{lang === 'ar' ? 'مشرفة إدارية (Admin)' : 'Admin Coordinator'}</option>
-                            </select>
-                          </div>
                         </div>
 
                         {/* Save Trigger Actions for teacher */}
@@ -1651,6 +1669,7 @@ export default function ControlPanel({
               );
             })
           )}
+          </div>
         </div>
       </div>
     );

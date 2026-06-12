@@ -47,24 +47,31 @@ export default function Login({
           <div className="flex gap-2 justify-center flex-wrap">
             <button 
               type="button" 
-              className="px-3.5 py-1.5 bg-white border border-gray-200 text-xs font-black text-brand-dark rounded-xl shadow-xs hover:bg-brand-neutral/30 transition-colors cursor-pointer" 
+              className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-black text-brand-dark rounded-xl shadow-xs hover:bg-brand-neutral/30 transition-colors cursor-pointer" 
               onClick={() => handleLogin('admin@test.com')}
             >
               {tField('مسؤولة النادي', 'Admin')}
             </button>
             <button 
               type="button" 
-              className="px-3.5 py-1.5 bg-white border border-gray-200 text-xs font-black text-brand-dark rounded-xl shadow-xs hover:bg-brand-neutral/30 transition-colors cursor-pointer" 
+              className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-black text-brand-dark rounded-xl shadow-xs hover:bg-brand-neutral/30 transition-colors cursor-pointer" 
               onClick={() => handleLogin('teacher@test.com')}
             >
               {tField('المعلمة مريم', 'Teacher')}
             </button>
             <button 
               type="button" 
-              className="px-3.5 py-1.5 bg-white border border-gray-200 text-xs font-black text-brand-dark rounded-xl shadow-xs hover:bg-brand-neutral/30 transition-colors cursor-pointer" 
-              onClick={() => handleLogin('student@test.com')}
+              className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-black text-brand-dark rounded-xl shadow-xs hover:bg-brand-neutral/30 transition-colors cursor-pointer" 
+              onClick={() => handleLogin('student_ug@test.com')}
             >
-              {tField('الطالبة أمل', 'Student')}
+              {tField('أمل (بكالوريوس)', 'Amal (UG Student)')}
+            </button>
+            <button 
+              type="button" 
+              className="px-3 py-1.5 bg-white border border-gray-200 text-xs font-black text-brand-dark rounded-xl shadow-xs hover:bg-brand-neutral/30 transition-colors cursor-pointer" 
+              onClick={() => handleLogin('student_pg@test.com')}
+            >
+              {tField('فاطمة (دراسات/موظفة)', 'Fatima (PG/Employee)')}
             </button>
           </div>
         </div>

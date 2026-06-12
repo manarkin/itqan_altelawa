@@ -113,7 +113,7 @@ export default function App() {
 
   // Dynamic user data lists for admin and register coordination
   const [allStudents, setAllStudents] = useState<any[]>(() => {
-    const cached = localStorage.getItem('itqan_all_students_v3');
+    const cached = localStorage.getItem('itqan_all_students_v4');
     if (cached) return JSON.parse(cached);
     return [
       {
@@ -123,14 +123,15 @@ export default function App() {
         lastName: 'الفارسية',
         role: 'STUDENT',
         phone: '96877665544',
-        email: 'amal.farsi@student.squ.edu.om',
+        email: 'student_ug@test.com',
         studentId: 'SQU983742',
         level: 'متقدمة',
         college: 'Science',
         cohort: '2022',
+        degree: 'Bachelor',
         cardPicName: 'student_id_amal.jpg',
         voiceFileName: 'recitation_amal.mp3',
-        approved: false,
+        approved: true,
         isNew: true,
         enrollmentDetails: {
           timings: {
@@ -151,6 +152,7 @@ export default function App() {
         level: 'مبتدئة',
         college: 'Arts',
         cohort: '2023',
+        degree: 'Bachelor',
         cardPicName: 'student_id_zakia.jpg',
         voiceFileName: 'recitation_zakia.mp3',
         approved: false,
@@ -174,6 +176,7 @@ export default function App() {
         level: 'تمهيدية',
         college: 'Engineering',
         cohort: '2021',
+        degree: 'Bachelor',
         cardPicName: 'student_id_basma.jpg',
         voiceFileName: 'recitation_basma.mp3',
         approved: false,
@@ -192,14 +195,16 @@ export default function App() {
         lastName: 'العلوية',
         role: 'STUDENT',
         phone: '96899887766',
-        email: 'fatima.alwi@student.squ.edu.om',
+        email: 'student_pg@test.com',
         studentId: 'SQU923847',
-        level: 'غير مصنفة',
+        level: 'مبتدئة',
         college: 'Medicine',
         cohort: '2024',
+        degree: 'Employee',
+        isSenior: true,
         cardPicName: 'student_id_fatima.jpg',
         voiceFileName: 'recitation_fatima.mp3',
-        approved: false,
+        approved: true,
         isNew: true,
         enrollmentDetails: {
           timings: {
@@ -212,7 +217,7 @@ export default function App() {
   });
 
   const [allTeachers, setAllTeachers] = useState<any[]>(() => {
-    const cached = localStorage.getItem('itqan_all_teachers_v3');
+    const cached = localStorage.getItem('itqan_all_teachers_v4');
     if (cached) return JSON.parse(cached);
     return [
       {
@@ -224,7 +229,7 @@ export default function App() {
         phone: '96812345678',
         email: 'maryam.hinai@recitation.club',
         employeeId: 'EMP1003',
-        level: 'مجازة',
+        level: 'طالبة اقراء',
         college: 'Education',
         approved: false,
         isNew: false,
@@ -244,7 +249,7 @@ export default function App() {
         phone: '96887654321',
         email: 'sara.balushi@recitation.club',
         employeeId: 'EMP1004',
-        level: 'طالبة اقراء',
+        level: 'مجازة',
         college: 'Arts',
         approved: false,
         isNew: false,
@@ -294,11 +299,11 @@ export default function App() {
   }, [adminStats]);
 
   useEffect(() => {
-    localStorage.setItem('itqan_all_students_v3', JSON.stringify(allStudents));
+    localStorage.setItem('itqan_all_students_v4', JSON.stringify(allStudents));
   }, [allStudents]);
 
   useEffect(() => {
-    localStorage.setItem('itqan_all_teachers_v3', JSON.stringify(allTeachers));
+    localStorage.setItem('itqan_all_teachers_v4', JSON.stringify(allTeachers));
   }, [allTeachers]);
 
 
@@ -358,6 +363,7 @@ export default function App() {
         lastName: 'الهنائية',
         role: 'TEACHER',
         email: emailAddress,
+        level: 'طالبة اقراء',
         isEnrolled: true,
         sessionId: '1',
         money: 0,
@@ -367,20 +373,48 @@ export default function App() {
         avatar: 'https://picsum.photos/seed/coach/200/200',
         password: '123'
       });
-    } else {
-      // SQU Student Aisha Al-Hinai with pass exams status teaser & coin chests
+    } else if (lower.includes('student_pg') || lower.includes('employee')) {
+      // SQU Student Fatima Al-Alawia (Postgraduate / Employee)
       setUser({
-        firstName: 'عائشة',
-        lastName: 'الهنائية',
+        firstName: 'فاطمة',
+        lastName: 'العلوية',
         role: 'STUDENT',
         email: emailAddress,
         isEnrolled: true,
         sessionId: '1',
-        phone: '+968 7766 5544',
-        college: lang === 'ar' ? 'التربية' : 'Education',
+        phone: '96899887766',
+        college: lang === 'ar' ? 'الطب' : 'Medicine',
+        degree: 'Employee',
+        cohort: '2024',
+        isSenior: true,
+        level: 'مبتدئة',
+        money: 300,
+        absencesExcused: 0,
+        absencesUnexcused: 0,
+        gifts: [],
+        examResults: {
+          theory: 25, // Out of 25
+          practical: 'PASS',
+          averageTheory: 22
+        },
+        avatar: 'https://picsum.photos/seed/fatima_avatar/100/100',
+        password: '123'
+      });
+    } else {
+      // SQU Student Amal Al-Farsia (Undergraduate)
+      setUser({
+        firstName: 'أمل',
+        lastName: 'الفارسية',
+        role: 'STUDENT',
+        email: emailAddress,
+        isEnrolled: true,
+        sessionId: '1',
+        phone: '96877665544',
+        college: lang === 'ar' ? 'العلوم' : 'Science',
         degree: 'Bachelor',
         cohort: '2022',
         isSenior: false,
+        level: 'متقدمة',
         money: 450,
         absencesExcused: 1,
         absencesUnexcused: 0,
@@ -392,7 +426,7 @@ export default function App() {
           practical: 'PASS',
           averageTheory: 20
         },
-        avatar: 'https://picsum.photos/seed/s4/100/100',
+        avatar: 'https://picsum.photos/seed/amal_avatar/100/100',
         password: '123'
       });
     }

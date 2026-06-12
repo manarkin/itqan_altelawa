@@ -1239,6 +1239,7 @@ export default function AssignmentDashboard({
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-400 font-black h-12 uppercase text-start">
                     <th className="px-5 text-start">{lang === 'ar' ? 'الطالبة ووسيلة الاتصال' : 'Student Name & Contact'}</th>
                     <th className="px-5 text-start">{lang === 'ar' ? 'الأوقات المتاحة المحددة' : 'Available Timings Chosen'}</th>
+                    <th className="px-5 text-center">{lang === 'ar' ? 'مستوى الطالبة' : 'Student Level'}</th>
                     <th className="px-5 text-center">{lang === 'ar' ? 'نمط التلقي المفضل' : 'Delivery Preference'}</th>
                     <th className="px-5 text-start">{lang === 'ar' ? 'ملاحظات الطالبة' : 'Student Notes'}</th>
                     <th className="px-5 text-center">{lang === 'ar' ? 'الحالة والمقرأة الحالية' : 'Assignment State'}</th>
@@ -1279,6 +1280,24 @@ export default function AssignmentDashboard({
                           <div className="whitespace-pre-line leading-relaxed py-2 font-black break-words" title={getFormattedTimings(st.enrollmentDetails?.timings || st.timings, lang)}>
                             {getFormattedTimings(st.enrollmentDetails?.timings || st.timings, lang)}
                           </div>
+                        </td>
+
+                        <td className="px-5 text-center">
+                          <span className={`inline-block px-3 py-1 rounded-xl text-[11px] font-black border tracking-wide whitespace-nowrap shadow-3xs ${
+                            (() => {
+                              const lvl = (st.level || '').toUpperCase();
+                              if (lvl.includes('BEGIN') || lvl.includes('مبتد')) {
+                                return 'bg-amber-50 text-amber-700 border-amber-200';
+                              } else if (lvl.includes('INTERMED') || lvl.includes('تمهيد') || lvl.includes('متوسط') || lvl.includes('TAMKEEN') || lvl.includes('تمكين')) {
+                                return 'bg-sky-50 text-sky-700 border-sky-200';
+                              } else if (lvl.includes('ADVANC') || lvl.includes('متقدم')) {
+                                return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                              }
+                              return 'bg-purple-50 text-purple-700 border-purple-200';
+                            })()
+                          }`}>
+                            {getStudentLevelDisplay(st, lang)}
+                          </span>
                         </td>
 
                         <td className="px-5 text-center text-slate-500 font-semibold">
@@ -1345,7 +1364,7 @@ export default function AssignmentDashboard({
 
                       {isExpanded && (
                         <tr className="bg-sky-50/15 border-b border-sky-100/40">
-                          <td colSpan={6} className="p-0">
+                          <td colSpan={7} className="p-0">
                             <div className="px-5 py-4 space-y-4 animate-fade-in text-start border-l-4 border-sky-500 bg-sky-50/5">
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-bold text-gray-700">
                                 
