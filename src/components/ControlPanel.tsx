@@ -1676,17 +1676,17 @@ export default function ControlPanel({
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 text-start select-none">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 text-start select-none animate-fade-in">
       
-      {/* Visual Header */}
-      <div className="mb-8 border-b border-gray-100 pb-5">
-        <span className="text-[10px] bg-brand-primary/10 text-brand-primary font-black px-2.5 py-1 rounded-md uppercase tracking-wider block w-fit mb-2">
+      {/* Minimal Header */}
+      <div className="mb-8 border-b border-slate-100 pb-6">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-neutral text-xs font-black text-brand-primary rounded-full uppercase tracking-wider mb-2">
           SQU Administrative Panel • جامعة السلطان قابوس
         </span>
-        <h2 className="text-2xl sm:text-4xl font-black text-brand-dark">
+        <h2 className="text-2xl sm:text-4xl font-black text-brand-dark font-sans leading-tight">
           {t().adminControlPanel}
         </h2>
-        <p className="text-gray-400 text-xs font-bold block mt-1">
+        <p className="text-slate-400 text-xs font-medium block mt-1.5 leading-relaxed">
           {lang === 'ar'
             ? 'بوابة ضبط حسابات النظام، معلمات التلاوة والمقرأة، وإعداد الفصول الفعالة والتسكين الذكي.'
             : 'SQU System Portal: configure member registries, manage recitation supervisors, set semesters, and run placement allocations.'
@@ -1695,74 +1695,69 @@ export default function ControlPanel({
       </div>
 
       {/* Two Modular Tools Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-0">
         
         {/* Tool 1: Accounts Access & System Roles Manager */}
-        <div className="bg-white rounded-3xl border border-brand-primary/15 shadow-sm p-6 sm:p-8 flex flex-col justify-between hover:border-brand-primary/25 transition-all">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:border-brand-primary/40 hover:shadow-md transition-all duration-200 space-y-5">
           <div className="space-y-4">
-            <div className="bg-brand-primary/10 p-4 rounded-2xl text-brand-primary w-fit">
-              <Users className="w-8 h-8" />
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-slate-100 text-brand-primary">
+              <Users className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-xl sm:text-2xl font-black text-brand-dark">
-                {lang === 'ar' ? '١. أداة إدارة حسابات مستخدمي النظام الجديد' : '1. Accounts & System Access Directory'}
+              <h3 className="text-base font-black text-brand-dark">
+                {lang === 'ar' ? 'إدارة الحسابات' : 'User Accounts'}
               </h3>
-              <p className="text-xs text-slate-400 font-bold leading-relaxed block mt-2">
+              <p className="text-xs text-slate-400 font-medium leading-relaxed block mt-2">
                 {lang === 'ar'
-                  ? 'التحقق والموافقة على طلبات التسجيل الجديدة للطالبات والمعلمات، وضبط مستويات Mastery والأرقام الجامعية والوظيفية، وتعيين أو سحب صلاحيات الإدارية والمشرفة.'
-                  : 'Sift through incoming student and teacher registrants, edit academic classifications, and promote/demote administrative coordinators.'
+                  ? 'مراجعة واعتماد حسابات الطالبات والمعلمات وضبط مستويات الإتقان.'
+                  : 'Review and approve student and teacher accounts, and configure mastery levels.'
                 }
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
+          <div className="flex gap-3">
             <button
               onClick={() => setSubView('students')}
-              className="px-5 py-4 bg-brand-primary hover:bg-brand-accent text-white rounded-2xl text-xs font-black shadow-md shrink-0 transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 bg-brand-primary hover:bg-brand-accent text-white rounded-xl text-xs font-black flex-1 cursor-pointer transition-all active:scale-98 shadow-sm text-center border border-transparent"
             >
-              <span>👥</span>
-              <span>{lang === 'ar' ? 'إدارة حسابات الطالبات' : 'Manage Students Directory'}</span>
+              {lang === 'ar' ? 'الطالبات' : 'Students'}
             </button>
 
             <button
               onClick={() => setSubView('teachers')}
-              className="px-5 py-4 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-xs font-black shadow-md shrink-0 transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black flex-1 cursor-pointer transition-all active:scale-98 shadow-sm text-center border border-transparent"
             >
-              <span>👩‍🏫</span>
-              <span>{lang === 'ar' ? 'إدارة حسابات المعلمات' : 'Manage Teachers Directory'}</span>
+              {lang === 'ar' ? 'المعلمات' : 'Teachers'}
             </button>
           </div>
         </div>
 
         {/* Tool 2: Intakes, Semesters, and Sessions Allocation Manager */}
-        <div className="bg-white rounded-3xl border border-brand-primary/15 shadow-sm p-6 sm:p-8 flex flex-col justify-between hover:border-brand-primary/25 transition-all">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:border-brand-primary/40 hover:shadow-md transition-all duration-200 space-y-5">
           <div className="space-y-4">
-            <div className="bg-brand-primary/[0.03] border border-brand-primary/10 p-4 rounded-2xl text-emerald-600 w-fit">
-              <Calendar className="w-8 h-8" />
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-slate-100 text-emerald-600">
+              <Calendar className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-xl sm:text-2xl font-black text-brand-dark">
-                {lang === 'ar' ? '٢. أداة تهيئة وإدارة الفصول والتسجيل' : '2. Semesters, Intakes & Session Allocation'}
+              <h3 className="text-base font-black text-brand-dark">
+                {lang === 'ar' ? 'الفصول والتسكين' : 'Semesters & Allocation'}
               </h3>
-              <p className="text-xs text-slate-400 font-bold leading-relaxed block mt-2">
+              <p className="text-xs text-slate-400 font-medium leading-relaxed block mt-2">
                 {lang === 'ar'
-                  ? 'تصميم وإطلاق فصول دراسية جديدة، تنظيم فترات استقبال طلبات التسجيل للمقرأة وجدولة فترات الإغلاق، وتوزيع الطالبات آلياً وتلقائياً أو يدوياً عبر تصميم الحلقات الفرعية.'
-                  : 'Formulate academic calendar semesters, configure registration cutoff timelines, draft recitation sessions, and allocate members.'
+                  ? 'إطلاق فصول دراسية جديدة وجدولة فترات التسجيل وتوزيع الطالبات على الحلقات.'
+                  : 'Launch new semesters, manage registration windows, and allocate students to recitation circles.'
                 }
               </p>
             </div>
           </div>
 
-          <div className="mt-8">
+          <div>
             <button
               onClick={() => setSubView('semesters')}
-              className="w-full px-5 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black shadow-md shrink-0 transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black cursor-pointer transition-all active:scale-98 shadow-sm text-center border border-transparent"
             >
-              <span>📅</span>
-              <span>
-                {lang === 'ar' ? 'إدارة الفصول والتسكين والفرز والتفويج ✦' : 'Configure Calendars & Circle Allocations ✦'}
-              </span>
+              {lang === 'ar' ? 'إدارة الفصول والتسكين ✦' : 'Manage Semesters & Allocations ✦'}
             </button>
           </div>
         </div>
