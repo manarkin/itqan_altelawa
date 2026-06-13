@@ -25,6 +25,43 @@ import {
 } from 'lucide-react';
 import { Session, User } from '../../types';
 
+// Helper function to match dynamic day and time filters
+const matchTimeFilters = (timingsObj: any, filters: { day: string; time: string }[]) => {
+  if (!filters || filters.length === 0) return true;
+  if (!timingsObj) return false;
+  
+  // Map our UI time values to the actual keys used in timings database
+  const timeKeyMap: Record<string, string> = {
+    'Fajr': 'Fajr',
+    '8:00': '8:00-9:15',
+    '10:00': '10:00-11:15',
+    '12:00': '12:00-1:15',
+    '2:15': '2:15-3:30',
+    '4:15': '4:15-5:30',
+    '8:00PM': '8:00-9:15PM'
+  };
+
+  // If ANY of the filter rows match, we return true
+  return filters.some(f => {
+    const { day, time } = f;
+    if (!day && !time) return true; // Empty filter matches everything
+    
+    // Check all entries of timings
+    return Object.entries(timingsObj).some(([key, val]) => {
+      if (!val) return false;
+      const parts = key.split('_');
+      if (parts.length !== 2) return false;
+      const [dKey, sKey] = parts; // Sunday, Fajr etc.
+      
+      const dayMatches = !day || dKey === day;
+      const mappedTimeKey = timeKeyMap[time] || time;
+      const timeMatches = !time || sKey === mappedTimeKey;
+      
+      return dayMatches && timeMatches;
+    });
+  });
+};
+
 // Timings utility format mapping
 const getFormattedTimings = (userTimings: any, lang: string) => {
   if (!userTimings) return lang === 'ar' ? 'غير محدد' : 'Not specified';
@@ -71,6 +108,71 @@ const getFormattedTimings = (userTimings: any, lang: string) => {
 
   if (selectedSlots.length === 0) return lang === 'ar' ? 'لا توجد أوقات محددة' : 'No timings selected';
   return selectedSlots.join(' | ');
+};
+
+const parseDoubleSessions = (timeStr: string, lang: 'ar' | 'en') => {
+  let s1Day = '';
+  let s1Time = '';
+  let s2Day = '';
+  let s2Time = '';
+
+  if (!timeStr) {
+    return {
+      session1: lang === 'ar' ? 'غير محدد' : 'To be announced',
+      session2: lang === 'ar' ? 'لم يحدد بعد' : 'to be announced'
+    };
+  }
+
+  const parts = timeStr.split('|').map(p => p.trim());
+  
+  if (parts.length >= 2) {
+    const daysPart = parts[0];
+    const timePart = parts[1];
+
+    let days: string[] = [];
+    if (daysPart.includes('والثلاثاء') || (daysPart.includes('الأحد') && daysPart.includes('الثلاثاء'))) {
+      days = lang === 'ar' ? ['الأحد', 'الثلاثاء'] : ['Sunday', 'Tuesday'];
+    } else if (daysPart.includes('والأربعاء') || (daysPart.includes('الاثنين') && daysPart.includes('الأربعاء'))) {
+      days = lang === 'ar' ? ['الاثنين', 'الأربعاء'] : ['Monday', 'Wednesday'];
+    } else if (daysPart.includes('/')) {
+      days = daysPart.split('/');
+    } else if (daysPart.includes('and')) {
+      days = daysPart.split(/\band\b/);
+    } else {
+      days = [daysPart];
+    }
+
+    days = days.map(d => d.trim());
+
+    if (days.length >= 2) {
+      s1Day = days[0];
+      s1Time = timePart;
+      s2Day = days[1];
+      s2Time = timePart;
+    } else {
+      s1Day = days[0] || '';
+      s1Time = timePart;
+      s2Day = '';
+      s2Time = '';
+    }
+  } else {
+    s1Day = timeStr;
+    s1Time = '';
+    s2Day = '';
+    s2Time = '';
+  }
+
+  const labelSession1 = lang === 'ar' ? 'الحلقة 1' : 'session 1';
+  const labelSession2 = lang === 'ar' ? 'الحلقة 2' : 'Session 2';
+  const tbaText = lang === 'ar' ? 'لم يحدد بعد' : 'to be announced';
+
+  const session1Str = `${labelSession1}: ${s1Day}${s1Time ? ` | ${s1Time}` : ''}`;
+  const session2Str = s2Day ? `${labelSession2}: ${s2Day}${s2Time ? ` | ${s2Time}` : ''}` : `${labelSession2}: ${tbaText}`;
+
+  return {
+    session1: session1Str,
+    session2: session2Str
+  };
 };
 
 // Mapping student levels
@@ -150,6 +252,8 @@ export default function AssignmentDashboard({
   const [studentSearch, setStudentSearch] = useState('');
   const [studentLevelFilter, setStudentLevelFilter] = useState<string>('all');
   const [studentTypeFilter, setStudentTypeFilter] = useState<string>('all'); // all, undergrad, postgrad
+  const [studentFormatFilter, setStudentFormatFilter] = useState<string>('all'); // all, online, in-person
+  const [studentTimeFilters, setStudentTimeFilters] = useState<{ id: string; day: string; time: string }[]>([]);
   const [studentTimingSearch, setStudentTimingSearch] = useState('');
   const [selectedTimings, setSelectedTimings] = useState<string[]>([]);
   const [timeDropdownOpen, setTimeDropdownOpen] = useState(false);
@@ -157,6 +261,38 @@ export default function AssignmentDashboard({
   const [teacherSearch, setTeacherSearch] = useState('');
   const [teacherLevelFilter, setTeacherLevelFilter] = useState<string>('all');
   const [teacherFormatFilter, setTeacherFormatFilter] = useState<string>('all');
+  const [teacherTimeFilters, setTeacherTimeFilters] = useState<{ id: string; day: string; time: string }[]>([]);
+
+  // Time filter handlers
+  const addStudentTimeFilter = () => {
+    setStudentTimeFilters(prev => [
+      ...prev,
+      { id: Math.random().toString(), day: '', time: '' }
+    ]);
+  };
+
+  const updateStudentTimeFilter = (id: string, field: 'day' | 'time', value: string) => {
+    setStudentTimeFilters(prev => prev.map(f => f.id === id ? { ...f, [field]: value } : f));
+  };
+
+  const removeStudentTimeFilter = (id: string) => {
+    setStudentTimeFilters(prev => prev.filter(f => f.id !== id));
+  };
+
+  const addTeacherTimeFilter = () => {
+    setTeacherTimeFilters(prev => [
+      ...prev,
+      { id: Math.random().toString(), day: '', time: '' }
+    ]);
+  };
+
+  const updateTeacherTimeFilter = (id: string, field: 'day' | 'time', value: string) => {
+    setTeacherTimeFilters(prev => prev.map(f => f.id === id ? { ...f, [field]: value } : f));
+  };
+
+  const removeTeacherTimeFilter = (id: string) => {
+    setTeacherTimeFilters(prev => prev.filter(f => f.id !== id));
+  };
 
   const [sessionSearch, setSessionSearch] = useState('');
   const [sessionFormatFilter, setSessionFormatFilter] = useState<string>('all');
@@ -698,9 +834,11 @@ export default function AssignmentDashboard({
         matchesFormat = formatPref === teacherFormatFilter;
       }
 
-      return matchesSearch && matchesLvl && matchesFormat;
+      const matchesTime = matchTimeFilters(t.enrollmentDetails?.timings || t.timings, teacherTimeFilters);
+
+      return matchesSearch && matchesLvl && matchesFormat && matchesTime;
     });
-  }, [allTeachers, teacherSearch, teacherLevelFilter, teacherFormatFilter]);
+  }, [allTeachers, teacherSearch, teacherLevelFilter, teacherFormatFilter, teacherTimeFilters]);
 
   // Active Sessions sorting
   const processedSessions = useMemo(() => {
@@ -882,7 +1020,7 @@ export default function AssignmentDashboard({
                 >
                   <div className="flex justify-between items-center w-full">
                     <span className="text-3xl">🏫</span>
-                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-md ${autoAssignFormat === 'in-person' ? 'bg-emerald-650 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-md ${autoAssignFormat === 'in-person' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
                       {lang === 'ar' ? 'النشاط الوجاهي (حضوري)' : 'Physical In-Person Format'}
                     </span>
                   </div>
@@ -1088,8 +1226,10 @@ export default function AssignmentDashboard({
          {/* ========================================================= */}
          {activeTab === 'students' && (
            <div className="space-y-6 animate-fade-in text-start">
-             <div className="bg-white rounded-3xl border border-slate-200/60 p-6 shadow-3xs flex flex-col md:flex-row gap-4 items-center w-full">
-               {/* Searching panel */}
+             <div className="bg-white rounded-3xl border border-slate-200/60 p-6 shadow-3xs flex flex-col gap-4 w-full">
+               {/* Search & dropdown select row */}
+               <div className="flex flex-col md:flex-row gap-4 items-center w-full">
+                 {/* Searching panel */}
                <div className="relative w-full md:flex-grow">
                  <Search className="absolute left-3.5 top-3 w-4.5 h-4.5 text-slate-400" />
                  <input
@@ -1102,134 +1242,117 @@ export default function AssignmentDashboard({
                </div>
 
               {/* Timing filtration custom multi-select checkbox dropdown */}
-              <div className="relative w-full md:w-64 font-bold select-none z-20">
-                <span className="absolute left-3 top-3 text-xs z-10">⏰</span>
-                <button
-                  type="button"
-                  onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
-                  className="w-full bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-primary pl-9 pr-8 py-2.5 rounded-xl text-xs font-black text-start flex items-center justify-between cursor-pointer"
-                >
-                  <span className="truncate">
-                    {selectedTimings.length === 0 
-                      ? (lang === 'ar' ? 'البحث بالأوقات والأنماط...' : 'Filter times & modes...')
-                      : (lang === 'ar' 
-                          ? `${selectedTimings.length} خيارات محددة` 
-                          : `${selectedTimings.length} selected filter(s)`)}
-                  </span>
-                  <svg className={`fill-current h-3 w-3 transition-transform duration-250 shrink-0 ${timeDropdownOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-                  </svg>
-                </button>
 
-                {timeDropdownOpen && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-20 cursor-default" 
-                      onClick={() => setTimeDropdownOpen(false)} 
-                    />
-                    <div className="absolute left-0 mt-1.5 w-full bg-white border border-slate-250 rounded-2xl shadow-xl z-35 max-h-80 overflow-y-auto p-3.5 space-y-3.5 text-xs text-start">
-                      {[
-                        { category: lang === 'ar' ? 'الأيام' : 'Days', items: [
-                          { value: 'Sunday', labelAr: 'الأحد', labelEn: 'Sunday' },
-                          { value: 'Monday', labelAr: 'الاثنين', labelEn: 'Monday' },
-                          { value: 'Tuesday', labelAr: 'الثلاثاء', labelEn: 'Tuesday' },
-                          { value: 'Wednesday', labelAr: 'الأربعاء', labelEn: 'Wednesday' },
-                          { value: 'Thursday', labelAr: 'الخميس', labelEn: 'Thursday' },
-                        ]},
-                        { category: lang === 'ar' ? 'الفترات الزمنية' : 'Time Slots', items: [
-                          { value: 'Fajr', labelAr: 'فجرية', labelEn: 'Fajr Session' },
-                          { value: '8:00', labelAr: '٨:٠٠ - ٩:١٥ ص', labelEn: '8:00 - 9:15 AM' },
-                          { value: '10:00', labelAr: '١٠:٠٠ - ١١:١٥ ص', labelEn: '10:00 - 11:15 AM' },
-                          { value: '12:00', labelAr: '١٢:٠٠ - ١:١٥ ظ', labelEn: '12:00 - 1:15 PM' },
-                          { value: '2:15', labelAr: '٢:١٥ - ٣:٣٠ ظ', labelEn: '2:15 - 3:30 PM' },
-                          { value: '4:15', labelAr: '٤:١٥ - ٥:٣٠ ع', labelEn: '4:15 - 5:30 PM' },
-                          { value: '8:00PM', labelAr: '٨:٠٠ - ٩:١٥ م', labelEn: '8:00 - 9:15 PM' },
-                        ]},
-                        { category: lang === 'ar' ? 'نمط التلقي' : 'Delivery Mode', items: [
-                          { value: 'Online', labelAr: 'عن بعد', labelEn: 'Online' },
-                          { value: 'In-Person', labelAr: 'حضوري', labelEn: 'In-Person' },
-                        ]}
-                      ].map((group, gidx) => (
-                        <div key={gidx} className="space-y-1.5">
-                          <span className="text-[10px] font-black text-slate-400 block border-b border-slate-100 pb-1">
-                            {group.category}
-                          </span>
-                          <div className="grid grid-cols-1 gap-1">
-                            {group.items.map((item, iidx) => {
-                              const isChecked = selectedTimings.includes(item.value);
-                              return (
-                                <label 
-                                  key={iidx} 
-                                  className={`flex items-center gap-2.5 p-1.5 rounded-lg cursor-pointer transition-colors ${
-                                    isChecked 
-                                      ? 'bg-brand-primary/5 text-brand-primary font-black' 
-                                      : 'hover:bg-slate-50 text-slate-700'
-                                  }`}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={() => {
-                                      if (isChecked) {
-                                        setSelectedTimings(prev => prev.filter(v => v !== item.value));
-                                      } else {
-                                        setSelectedTimings(prev => [...prev, item.value]);
-                                      }
-                                    }}
-                                    className="accent-brand-primary cursor-pointer w-4 h-4 rounded text-brand-primary focus:ring-brand-primary"
-                                  />
-                                  <span className="font-bold">
-                                    {lang === 'ar' ? item.labelAr : item.labelEn}
-                                  </span>
-                                </label>
-                              );
-                            })}
-                          </div>
+
+                  {/* Filtering Level, Degree, and Delivery Mode */}
+                  <div className="flex flex-wrap gap-2 select-none w-full md:w-auto">
+                    <select
+                      value={studentLevelFilter}
+                      onChange={(e) => setStudentLevelFilter(e.target.value)}
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-black text-slate-650 focus:outline-none focus:border-brand-primary"
+                    >
+                      <option value="all">{lang === 'ar' ? 'جميع المستويات' : 'All Tiers'}</option>
+                      <option value="BEGINNER">{lang === 'ar' ? 'مبتدئة' : 'Beginner'}</option>
+                      <option value="INTERMEDIATE">{lang === 'ar' ? 'تمهيدية' : 'Intermediate'}</option>
+                      <option value="ADVANCED">{lang === 'ar' ? 'متقدمة' : 'Advanced'}</option>
+                    </select>
+
+                    <select
+                      value={studentTypeFilter}
+                      onChange={(e) => setStudentTypeFilter(e.target.value)}
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-black text-slate-650 focus:outline-none focus:border-brand-primary"
+                    >
+                      <option value="all">{lang === 'ar' ? 'جميع الدرجات العلمية' : 'All Degrees'}</option>
+                      <option value="undergrad">{lang === 'ar' ? 'بكالوريوس (تحت التخرج)' : 'Undergraduate'}</option>
+                      <option value="postgrad">{lang === 'ar' ? 'دراسات عليا / موظفات' : 'Graduate / Employee'}</option>
+                    </select>
+
+                    <select
+                      value={studentFormatFilter}
+                      onChange={(e) => setStudentFormatFilter(e.target.value)}
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-black text-slate-650 focus:outline-none focus:border-brand-primary"
+                    >
+                      <option value="all">{lang === 'ar' ? 'جميع أنماط التلقي' : 'All Formats'}</option>
+                      <option value="in-person">{lang === 'ar' ? 'حضوري بالجامعة' : 'In-Person'}</option>
+                      <option value="online">{lang === 'ar' ? 'عن بعد (تيمز)' : 'Online'}</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Specific day and time multi-filters block */}
+                <div className="border-t border-slate-100 pt-4 w-full">
+                  <div className="flex items-center justify-between mb-3">
+                    <h5 className="text-[11px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+                      ⏱️ {lang === 'ar' ? 'البحث بأوقات وتواريخ محددة وحفظها (OR)' : 'Filter by specific times & days (OR)'}
+                    </h5>
+                    <button
+                      type="button"
+                      onClick={addStudentTimeFilter}
+                      className="px-3 py-1.5 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/15 rounded-lg text-[10.5px] font-black cursor-pointer transition-all flex items-center gap-1"
+                    >
+                      <span>+</span> {lang === 'ar' ? 'إضافة موعد بحث معين' : 'Add Day/Time Filter'}
+                    </button>
+                  </div>
+
+                  {studentTimeFilters.length === 0 ? (
+                    <p className="text-[11px] text-slate-400 italic">
+                      {lang === 'ar' 
+                        ? '*لم يتم تحديد مرشحات وقت مخصصة. سيتم عرض جميع الطالبات بغض النظر عن الوقت.' 
+                        : '*No specific time filters defined. Showing all students regardless of availability.'}
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2.5 items-center">
+                      {studentTimeFilters.map((filter) => (
+                        <div key={filter.id} className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 p-1.5 rounded-xl animate-fade-in shadow-3xs">
+                          <select
+                            value={filter.day}
+                            onChange={(e) => updateStudentTimeFilter(filter.id, 'day', e.target.value)}
+                            className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10.5px] font-black text-slate-700 focus:outline-none focus:border-brand-primary cursor-pointer"
+                          >
+                            <option value="">{lang === 'ar' ? 'أي يوم' : 'Any Day'}</option>
+                            <option value="Sunday">{lang === 'ar' ? 'الأحد' : 'Sunday'}</option>
+                            <option value="Monday">{lang === 'ar' ? 'الاثنين' : 'Monday'}</option>
+                            <option value="Tuesday">{lang === 'ar' ? 'الثلاثاء' : 'Tuesday'}</option>
+                            <option value="Wednesday">{lang === 'ar' ? 'الأربعاء' : 'Wednesday'}</option>
+                            <option value="Thursday">{lang === 'ar' ? 'الخميس' : 'Thursday'}</option>
+                          </select>
+
+                          <select
+                            value={filter.time}
+                            onChange={(e) => updateStudentTimeFilter(filter.id, 'time', e.target.value)}
+                            className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10.5px] font-black text-slate-700 focus:outline-none focus:border-brand-primary cursor-pointer"
+                          >
+                            <option value="">{lang === 'ar' ? 'أي وقت' : 'Any Time'}</option>
+                            <option value="Fajr">{lang === 'ar' ? 'حلقة فجرية' : 'Fajr'}</option>
+                            <option value="8:00">{lang === 'ar' ? '٨:٠٠ - ٩:١٥ ص' : '8:00-9:15 AM'}</option>
+                            <option value="10:00">{lang === 'ar' ? '١٠:٠٠ - ١١:١٥ ص' : '10:00-11:15 AM'}</option>
+                            <option value="12:00">{lang === 'ar' ? '١٢:٠٠ - ١:١٥ ظ' : '12:00-1:15 PM'}</option>
+                            <option value="2:15">{lang === 'ar' ? '٢:١٥ - ٣:٣٠ ظ' : '2:15-3:30 PM'}</option>
+                            <option value="4:15">{lang === 'ar' ? '٤:١٥ - ٥:٣٠ ع' : '4:15-5:30 PM'}</option>
+                            <option value="8:00PM">{lang === 'ar' ? '٨:٠٠ - ٩:١٥ م' : '8:00-9:15 PM'}</option>
+                          </select>
+
+                          <button
+                            type="button"
+                            onClick={() => removeStudentTimeFilter(filter.id)}
+                            className="p-1 text-slate-400 hover:text-red-650 rounded-lg hover:bg-neutral-50 cursor-pointer transition-colors"
+                            title={lang === 'ar' ? 'حذف مرشح الوقت' : 'Remove time filter'}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       ))}
                       
-                      {selectedTimings.length > 0 && (
-                        <div className="pt-2 border-t border-slate-100 flex justify-between items-center bg-white sticky bottom-0">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedTimings([])}
-                            className="text-red-655 hover:underline text-[10px] font-black cursor-pointer"
-                          >
-                            {lang === 'ar' ? 'مسح الكل' : 'Clear All'}
-                          </button>
-                          <span className="text-[10px] text-slate-400">
-                            {lang === 'ar' ? `${selectedTimings.length} مختار` : `${selectedTimings.length} active`}
-                          </span>
-                        </div>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setStudentTimeFilters([])}
+                        className="px-2.5 py-1 text-red-600 hover:bg-red-50 rounded-lg text-[10px] font-black cursor-pointer transition-colors border border-transparent hover:border-red-100"
+                      >
+                        {lang === 'ar' ? 'مسح تصفية الأوقات' : 'Clear All'}
+                      </button>
                     </div>
-                  </>
-                )}
-              </div>
-
-              {/* Filtering level & Types */}
-              <div className="flex flex-wrap gap-2 select-none w-full md:w-auto">
-                <select
-                  value={studentLevelFilter}
-                  onChange={(e) => setStudentLevelFilter(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-black text-slate-650 focus:outline-none focus:border-brand-primary"
-                >
-                  <option value="all">{lang === 'ar' ? 'جميع المستويات' : 'All Tiers'}</option>
-                  <option value="BEGINNER">{lang === 'ar' ? 'مبتدئة' : 'Beginner'}</option>
-                  <option value="INTERMEDIATE">{lang === 'ar' ? 'تمهيدية' : 'Intermediate'}</option>
-                  <option value="ADVANCED">{lang === 'ar' ? 'متقدمة' : 'Advanced'}</option>
-                </select>
-
-                <select
-                  value={studentTypeFilter}
-                  onChange={(e) => setStudentTypeFilter(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-black text-slate-650 focus:outline-none focus:border-brand-primary"
-                >
-                  <option value="all">{lang === 'ar' ? 'جميع الدرجات العلمية' : 'All Degrees'}</option>
-                  <option value="undergrad">{lang === 'ar' ? 'بكالوريوس (تحت التخرج)' : 'Undergraduate'}</option>
-                  <option value="postgrad">{lang === 'ar' ? 'دراسات عليا / موظفات' : 'Graduate / Employee'}</option>
-                </select>
-              </div>
+                  )}
+                </div>
             </div>
 
             {/* Students Grid View */}
@@ -1287,9 +1410,9 @@ export default function AssignmentDashboard({
                             (() => {
                               const lvl = (st.level || '').toUpperCase();
                               if (lvl.includes('BEGIN') || lvl.includes('مبتد')) {
-                                return 'bg-amber-50 text-amber-700 border-amber-200';
+                                return 'bg-pink-50 text-pink-700 border-pink-200';
                               } else if (lvl.includes('INTERMED') || lvl.includes('تمهيد') || lvl.includes('متوسط') || lvl.includes('TAMKEEN') || lvl.includes('تمكين')) {
-                                return 'bg-sky-50 text-sky-700 border-sky-200';
+                                return 'bg-orange-50 text-orange-700 border-orange-200';
                               } else if (lvl.includes('ADVANC') || lvl.includes('متقدم')) {
                                 return 'bg-emerald-50 text-emerald-700 border-emerald-200';
                               }
@@ -1491,38 +1614,117 @@ export default function AssignmentDashboard({
         {/* ========================================================= */}
         {activeTab === 'teachers' && (
           <div className="space-y-6 animate-fade-in text-start">
-            <div className="bg-white rounded-3xl border border-slate-200/60 p-6 shadow-3xs flex flex-col md:flex-row gap-4 items-center">
-              <div className="relative w-full md:flex-grow">
-                <Search className="absolute left-3.5 top-3 w-4.5 h-4.5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder={lang === 'ar' ? 'بحث باسم المعلمة ...' : 'Type teacher details to search...'}
-                  value={teacherSearch}
-                  onChange={(e) => setTeacherSearch(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-primary pl-11 pr-4 py-2.5 rounded-xl text-xs font-bold text-start"
-                />
+            <div className="bg-white rounded-3xl border border-slate-200/60 p-6 shadow-3xs flex flex-col gap-4 w-full">
+              {/* Search & selectors row */}
+              <div className="flex flex-col md:flex-row gap-4 items-center w-full">
+                {/* Searching panel */}
+                <div className="relative w-full md:flex-grow">
+                  <Search className="absolute left-3.5 top-3 w-4.5 h-4.5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder={lang === 'ar' ? 'بحث باسم المعلمة ...' : 'Type teacher details to search...'}
+                    value={teacherSearch}
+                    onChange={(e) => setTeacherSearch(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 focus:outline-none focus:border-brand-primary pl-11 pr-4 py-2.5 rounded-xl text-xs font-bold text-start"
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-2 select-none w-full md:w-auto">
+                  <select
+                    value={teacherLevelFilter}
+                    onChange={(e) => setTeacherLevelFilter(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-black text-slate-650 focus:outline-none focus:border-brand-primary"
+                  >
+                    <option value="all">{lang === 'ar' ? 'جميع تراخيص السند' : 'All Certifications'}</option>
+                    <option value="master">{lang === 'ar' ? 'مُجازة بالسند المتصل' : 'Certified Master / Mujazah'}</option>
+                    <option value="iqraa">{lang === 'ar' ? 'طالبة إقراء' : 'Iqraa Reciting Student'}</option>
+                  </select>
+
+                  <select
+                    value={teacherFormatFilter}
+                    onChange={(e) => setTeacherFormatFilter(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-black text-slate-650 focus:outline-none focus:border-brand-primary"
+                  >
+                    <option value="all">{lang === 'ar' ? 'جميع أنماط التفرغ' : 'All Formats'}</option>
+                    <option value="in-person">{lang === 'ar' ? 'وجاهي بالجامعة فقط' : 'SQU Campus only'}</option>
+                    <option value="online">{lang === 'ar' ? 'رقمي عن بعد (تيمز)' : 'Digital remote only'}</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="flex flex-wrap gap-2 select-none w-full md:w-auto">
-                <select
-                  value={teacherLevelFilter}
-                  onChange={(e) => setTeacherLevelFilter(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-black text-slate-650 focus:outline-none focus:border-brand-primary"
-                >
-                  <option value="all">{lang === 'ar' ? 'جميع تراخيص السند' : 'All Certifications'}</option>
-                  <option value="master">{lang === 'ar' ? 'مُجازة بالسند المتصل' : 'Certified Master / Mujazah'}</option>
-                  <option value="iqraa">{lang === 'ar' ? 'طالبة إقراء' : 'Iqraa Reciting Student'}</option>
-                </select>
+              {/* Specific day and time multi-filters block */}
+              <div className="border-t border-slate-100 pt-4 w-full">
+                <div className="flex items-center justify-between mb-3">
+                  <h5 className="text-[11px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+                    ⏱️ {lang === 'ar' ? 'البحث بأوقات وتواريخ محددة وحفظها للمعلمات (OR)' : 'Filter teachers by specific times & days (OR)'}
+                  </h5>
+                  <button
+                    type="button"
+                    onClick={addTeacherTimeFilter}
+                    className="px-3 py-1.5 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/15 rounded-lg text-[10.5px] font-black cursor-pointer transition-all flex items-center gap-1"
+                  >
+                    <span>+</span> {lang === 'ar' ? 'إضافة موعد بحث معين' : 'Add Day/Time Filter'}
+                  </button>
+                </div>
 
-                <select
-                  value={teacherFormatFilter}
-                  onChange={(e) => setTeacherFormatFilter(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-black text-slate-650 focus:outline-none focus:border-brand-primary"
-                >
-                  <option value="all">{lang === 'ar' ? 'جميع أنماط التفرغ' : 'All Formats'}</option>
-                  <option value="in-person">{lang === 'ar' ? 'وجاهي بالجامعة فقط' : 'SQU Campus only'}</option>
-                  <option value="online">{lang === 'ar' ? 'رقمي عن بعد (تيمز)' : 'Digital remote only'}</option>
-                </select>
+                {teacherTimeFilters.length === 0 ? (
+                  <p className="text-[11px] text-slate-400 italic">
+                    {lang === 'ar' 
+                      ? '*لم يتم تحديد مرشحات وقت مخصصة المعلمة. سيتم عرض جميع المعلمات بغض النظر عن الوقت.' 
+                      : '*No specific time filters defined. Showing all teachers.'}
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2.5 items-center">
+                    {teacherTimeFilters.map((filter) => (
+                      <div key={filter.id} className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 p-1.5 rounded-xl animate-fade-in shadow-3xs">
+                        <select
+                          value={filter.day}
+                          onChange={(e) => updateTeacherTimeFilter(filter.id, 'day', e.target.value)}
+                          className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10.5px] font-black text-slate-700 focus:outline-none focus:border-brand-primary cursor-pointer"
+                        >
+                          <option value="">{lang === 'ar' ? 'أي يوم' : 'Any Day'}</option>
+                          <option value="Sunday">{lang === 'ar' ? 'الأحد' : 'Sunday'}</option>
+                          <option value="Monday">{lang === 'ar' ? 'الاثنين' : 'Monday'}</option>
+                          <option value="Tuesday">{lang === 'ar' ? 'الثلاثاء' : 'Tuesday'}</option>
+                          <option value="Wednesday">{lang === 'ar' ? 'الأربعاء' : 'Wednesday'}</option>
+                          <option value="Thursday">{lang === 'ar' ? 'الخميس' : 'Thursday'}</option>
+                        </select>
+
+                        <select
+                          value={filter.time}
+                          onChange={(e) => updateTeacherTimeFilter(filter.id, 'time', e.target.value)}
+                          className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10.5px] font-black text-slate-700 focus:outline-none focus:border-brand-primary cursor-pointer"
+                        >
+                          <option value="">{lang === 'ar' ? 'أي وقت' : 'Any Time'}</option>
+                          <option value="Fajr">{lang === 'ar' ? 'حلقة فجرية' : 'Fajr'}</option>
+                          <option value="8:00">{lang === 'ar' ? '٨:٠٠ - ٩:١٥ ص' : '8:00-9:15 AM'}</option>
+                          <option value="10:00">{lang === 'ar' ? '١٠:٠٠ - ١١:١٥ ص' : '10:00-11:15 AM'}</option>
+                          <option value="12:00">{lang === 'ar' ? '١٢:٠٠ - ١:١٥ ظ' : '12:00-1:15 PM'}</option>
+                          <option value="2:15">{lang === 'ar' ? '٢:١٥ - ٣:٣٠ ظ' : '2:15-3:30 PM'}</option>
+                          <option value="4:15">{lang === 'ar' ? '٤:١٥ - ٥:٣٠ ع' : '4:15-5:30 PM'}</option>
+                          <option value="8:00PM">{lang === 'ar' ? '٨:٠٠ - ٩:١٥ م' : '8:00-9:15 PM'}</option>
+                        </select>
+
+                        <button
+                          type="button"
+                          onClick={() => removeTeacherTimeFilter(filter.id)}
+                          className="p-1 text-slate-400 hover:text-red-650 rounded-lg hover:bg-neutral-50 cursor-pointer transition-colors"
+                          title={lang === 'ar' ? 'حذف مرشح الوقت' : 'Remove time filter'}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                    
+                    <button
+                      type="button"
+                      onClick={() => setTeacherTimeFilters([])}
+                      className="px-2.5 py-1 text-red-600 hover:bg-red-50 rounded-lg text-[10px] font-black cursor-pointer transition-colors border border-transparent hover:border-red-100"
+                    >
+                      {lang === 'ar' ? 'مسح تصفية الأوقات' : 'Clear All'}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1696,12 +1898,18 @@ export default function AssignmentDashboard({
 
                 // Strip any existing "أ. " or "T. " prefixes from raw name to construct clean format
                 const cleanTeacherName = resolvedTeacherName
-                  .replace(/^(T\.\s*|أ\.\s*)/i, '')
+                  .replace(/^(T\.\s*|أ\.\s*|Teacher\s*|الاستاذة\s*|الأستاذة\s*)/i, '')
                   .trim();
 
-                const dynamicSessionName = lang === 'ar'
-                  ? `حلقة أ. ${cleanTeacherName}`
-                  : `T.${cleanTeacherName} session`;
+                const defaultTitle = lang === 'ar' ? `أ. ${cleanTeacherName}` : `T.${cleanTeacherName}`;
+
+                const hasCustomName = sess.name && 
+                                      sess.name.trim() !== '' && 
+                                      !sess.name.includes('Smart Propose') && 
+                                      !sess.name.includes('حلقة ذكية') &&
+                                      sess.name.trim() !== defaultTitle;
+
+                const classroomTitle = hasCustomName ? sess.name : defaultTitle;
 
                 // Handle format and location defaults
                 const isOnline = actualTeacher 
@@ -1730,7 +1938,7 @@ export default function AssignmentDashboard({
                   <div key={idx} className="bg-white rounded-3xl border border-slate-200 shadow-3xs overflow-hidden hover:shadow-md transition-all flex flex-col justify-between">
                     <div>
                       {/* Class Banner colorized based on location */}
-                      <div className={`p-5 text-white ${isOnline ? 'bg-indigo-650' : 'bg-emerald-650'}`}>
+                      <div className={`p-5 text-white ${isOnline ? 'bg-indigo-600' : 'bg-emerald-600'}`}>
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-[9.5px] bg-white/20 border border-white/35 rounded uppercase font-black px-2.5 py-0.5">
                             {sess.level}
@@ -1739,21 +1947,28 @@ export default function AssignmentDashboard({
                             {isOnline ? '💻 Digital Stream' : '🏫 In-Person SQU'}
                           </span>
                         </div>
-                        <h4 className="font-extrabold text-white text-base truncate mt-2">{dynamicSessionName}</h4>
+                        <h4 className="font-extrabold text-white text-base truncate mt-2">{classroomTitle}</h4>
                         <span className="text-xs text-white/95 truncate block mt-0.5">👩‍🏫 {resolvedTeacherName}</span>
                       </div>
 
                       {/* Class Body Details */}
                       <div className="p-5 space-y-4">
-                        <div className="text-xs text-slate-500 font-bold space-y-1">
-                          <div className="flex items-center gap-1.5 font-mono">
-                            <span>📅</span>
-                            <span>{sess.time}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span>📍</span>
-                            <span>{resolvedLocation}</span>
-                          </div>
+                        <div className="text-xs text-slate-500 font-bold space-y-1.5 font-mono">
+                          {(() => {
+                            const { session1, session2 } = parseDoubleSessions(sess.time, lang);
+                            return (
+                              <>
+                                <div className="flex items-center gap-1.5">
+                                  <span>📅</span>
+                                  <span>{session1}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span>📅</span>
+                                  <span>{session2}</span>
+                                </div>
+                              </>
+                            );
+                          })()}
                         </div>
 
                         {/* Enrolled students list */}
@@ -1784,6 +1999,41 @@ export default function AssignmentDashboard({
                               </div>
                             )}
                           </div>
+                        </div>
+
+                        {/* Add Student selector option */}
+                        <div className="pt-3 border-t border-slate-100 select-none">
+                          <span className="text-[9.5px] text-slate-400 font-extrabold block uppercase tracking-wider mb-1.5">
+                            {lang === 'ar' ? 'إضافة طالبة للحلقة:' : 'Add Student to Session:'}
+                          </span>
+                          {unassignedStudents.length > 0 ? (
+                            <select
+                              value=""
+                              onChange={(e) => {
+                                const stId = e.target.value;
+                                if (stId) {
+                                  handleAssignStudent(stId, sess.id);
+                                }
+                              }}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-[10.5px] font-black text-slate-650 focus:outline-none focus:border-brand-primary cursor-pointer animate-fade-in"
+                            >
+                              <option value="">
+                                {lang === 'ar' ? '➕ اختر طالبة للإضافة...' : '➕ Select student to add...'}
+                              </option>
+                              {unassignedStudents.map(st => {
+                                const bintName = getBintFullName(st);
+                                return (
+                                  <option key={st.studentId || st.email} value={st.studentId || st.email}>
+                                    {bintName} ({getStudentLevelDisplay(st, lang)})
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          ) : (
+                            <span className="text-[9.5px] text-slate-450 italic font-bold block">
+                              {lang === 'ar' ? 'جميع الطالبات مسكنات بالحلقات.' : 'All students are already assigned.'}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

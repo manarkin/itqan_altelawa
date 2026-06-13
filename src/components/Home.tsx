@@ -399,9 +399,9 @@ export default function Home({
         }
         const lvl = (user?.level || '').toUpperCase();
         if (lvl.includes('BEGIN') || lvl.includes('مبتد')) {
-          return 'from-amber-500 via-orange-600 to-rose-700';
+          return 'from-pink-500 via-rose-500 to-pink-700';
         } else if (lvl.includes('INTERMED') || lvl.includes('تمهيد') || lvl.includes('متوسط') || lvl.includes('TAMKEEN') || lvl.includes('تمكين') || lvl.includes('INTRODUC')) {
-          return 'from-indigo-600 via-blue-700 to-sky-800';
+          return 'from-orange-500 via-amber-500 to-orange-700';
         } else if (lvl.includes('ADVANC') || lvl.includes('متقدم')) {
           return 'from-emerald-600 via-teal-700 to-cyan-900';
         }

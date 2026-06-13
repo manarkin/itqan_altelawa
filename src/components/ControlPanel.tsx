@@ -549,7 +549,14 @@ export default function ControlPanel({
       };
 
       if (onUpdateSemesters) {
-        onUpdateSemesters(prev => [...prev, newSem]);
+        onUpdateSemesters(prev => {
+          // Set stopRegistration: true for all previous semesters so they stop taking responses immediately
+          const deactivatedPrev = prev.map(sem => ({
+            ...sem,
+            stopRegistration: true
+          }));
+          return [...deactivatedPrev, newSem];
+        });
       }
       
       // Reset fields
@@ -565,9 +572,21 @@ export default function ControlPanel({
 
     const handleToggleRegistration = (id: string) => {
       if (onUpdateSemesters) {
-        onUpdateSemesters(prev => prev.map(sem => 
-          sem.id === id ? { ...sem, stopRegistration: !sem.stopRegistration } : sem
-        ));
+        onUpdateSemesters(prev => {
+          const currentSemSelected = prev.find(s => s.id === id);
+          if (!currentSemSelected) return prev;
+          
+          const willBeActive = currentSemSelected.stopRegistration; // it is currently stopped, toggling will make it active (false)
+          
+          return prev.map(sem => {
+            if (sem.id === id) {
+              return { ...sem, stopRegistration: !sem.stopRegistration };
+            } else {
+              // If we are activating this semester, other ones must stop taking responses immediately
+              return willBeActive ? { ...sem, stopRegistration: true } : sem;
+            }
+          });
+        });
       }
     };
 
@@ -730,13 +749,20 @@ export default function ControlPanel({
                 }
 
                 return (
-                  <div key={sem.id} className="border border-gray-150 rounded-2xl p-5 hover:border-brand-primary/20 transition-all text-start relative bg-slate-50/50">
+                  <div key={sem.id} className="border border-gray-150 rounded-2xl p-5 hover:border-brand-primary/20 transition-all text-start relative bg-slate-50/50 pr-12 ltr:pr-12 rtl:pl-12">
+                    
+                    {/* Delete button positioned to the corner */}
+                    <button
+                      onClick={() => handleDeleteSemester(sem.id)}
+                      className="absolute top-4 end-4 p-2 bg-white hover:bg-rose-50 border border-gray-200 hover:border-rose-150 text-rose-600 rounded-xl cursor-pointer transition-all duration-200 hover:scale-105 z-10"
+                      title={tLabel('حذف', 'Delete')}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4 mb-4">
                       <div>
                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                          <span className="text-xs font-mono bg-brand-primary/10 text-brand-primary px-2.5 py-0.5 rounded-md font-extrabold">
-                            #{sem.id}
-                          </span>
                           {statusBadge}
                         </div>
                         <h4 className="text-base sm:text-lg font-black text-brand-dark">
@@ -745,20 +771,6 @@ export default function ControlPanel({
                       </div>
 
                       <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => handleToggleRegistration(sem.id)}
-                          className={`px-4 py-2.5 rounded-xl text-xs font-extrabold cursor-pointer border transition-all duration-200 ${
-                            sem.stopRegistration 
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                              : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
-                          }`}
-                        >
-                          {sem.stopRegistration 
-                            ? tLabel('تفعيل استقبال التسجيل', 'Re-open Registration')
-                            : tLabel('إيقاف استقبال التسجيل 🛑', 'Stop Registration 🛑')
-                          }
-                        </button>
-
                         <button
                           onClick={() => {
                             setActiveAllocationSemesterId(sem.id);
@@ -769,18 +781,10 @@ export default function ControlPanel({
                         >
                           🎯 {tLabel('أداة الفرز والتوزيع للحلقات', 'Run Session Allocator Tool')}
                         </button>
-
-                        <button
-                          onClick={() => handleDeleteSemester(sem.id)}
-                          className="p-2.5 bg-white hover:bg-rose-50 border border-gray-200 hover:border-rose-150 text-rose-600 rounded-xl cursor-pointer"
-                          title={tLabel('حذف', 'Delete')}
-                        >
-                          <Trash2 className="w-4.5 h-4.5" />
-                        </button>
                       </div>
                     </div>
 
-                    <p className="text-xs sm:text-sm text-gray-500 font-bold mb-4 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-gray-500 font-bold mb-4 leading-relaxed pr-6">
                       {sem.description}
                     </p>
 
@@ -812,7 +816,7 @@ export default function ControlPanel({
                         </div>
                       </div>
 
-                      <div className="bg-white p-3 rounded-xl border border-gray-150 flex flex-col justify-center">
+                      <div className="bg-white p-3 rounded-xl border border-gray-150 flex flex-col justify-between space-y-2">
                         <div>
                           <span className="text-gray-400 font-bold block mb-1">{tLabel('الموعد النهائي التلقائي:', 'Automated Lock:')}</span>
                           <input
@@ -829,6 +833,20 @@ export default function ControlPanel({
                             className="w-full text-xs font-mono bg-slate-50 border border-gray-200 rounded-lg p-2 font-bold focus:outline-none focus:border-brand-primary font-black text-slate-700"
                           />
                         </div>
+                        
+                        <button
+                          onClick={() => handleToggleRegistration(sem.id)}
+                          className={`w-full py-1.5 rounded-lg text-[10.5px] font-black cursor-pointer border transition-all duration-200 ${
+                            sem.stopRegistration 
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                              : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                          }`}
+                        >
+                          {sem.stopRegistration 
+                            ? tLabel('تفعيل الآن', 'Re-open Now')
+                            : tLabel('إيقاف الآن 🛑', 'Stop Now 🛑')
+                          }
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -968,7 +986,7 @@ export default function ControlPanel({
                 >
                   {/* Summary row card click */}
                   <div 
-                    className="p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 cursor-pointer select-none"
+                    className="p-5 flex justify-between items-center gap-4 cursor-pointer select-none"
                     onClick={() => {
                       if (isExpanded) {
                         setEditingId(null);
@@ -978,12 +996,29 @@ export default function ControlPanel({
                       }
                     }}
                   >
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         {/* Full precise name as requested */}
                         <h4 className="text-sm sm:text-base font-extrabold text-brand-dark">
                           {getPreciseFullName(stud)}
                         </h4>
+                        
+                        {/* Level badge */}
+                        <span className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-black border tracking-wide whitespace-nowrap shadow-3xs ${
+                          (() => {
+                            const lvl = (stud.level || '').toUpperCase();
+                            if (lvl.includes('BEGIN') || lvl.includes('مبتد')) {
+                              return 'bg-pink-50 text-pink-700 border-pink-200';
+                            } else if (lvl.includes('INTERMED') || lvl.includes('تمهيد') || lvl.includes('متوسط') || lvl.includes('TAMKEEN') || lvl.includes('تمكين')) {
+                              return 'bg-orange-50 text-orange-700 border-orange-200';
+                            } else if (lvl.includes('ADVANC') || lvl.includes('متقدم')) {
+                              return 'bg-emerald-50 text-emerald-700 border-emerald-150';
+                            }
+                            return 'bg-purple-50 text-purple-700 border-purple-200';
+                          })()
+                        }`}>
+                          {lang === 'ar' ? getArabicLevelName(stud.level) : stud.level}
+                        </span>
                         
                         {/* Review Status Tags */}
                         {stud.approved ? (
@@ -1011,18 +1046,18 @@ export default function ControlPanel({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className="text-end hidden sm:block">
-                        <small className="text-slate-400 block text-[10px] font-black uppercase tracking-wider mb-0.5">
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="hidden sm:block text-end">
+                        <small className="text-slate-400 block text-[10px] font-black uppercase tracking-wider mb-0.5 text-end">
                           {lang === 'ar' ? 'المستوى' : 'Level'}
                         </small>
                         <span className={`inline-block px-3 py-1 rounded-xl text-[11px] font-black border tracking-wide whitespace-nowrap shadow-3xs ${
                           (() => {
                             const lvl = (stud.level || '').toUpperCase();
                             if (lvl.includes('BEGIN') || lvl.includes('مبتد')) {
-                              return 'bg-amber-50 text-amber-700 border-amber-200';
+                              return 'bg-pink-50 text-pink-700 border-pink-200';
                             } else if (lvl.includes('INTERMED') || lvl.includes('تمهيد') || lvl.includes('متوسط') || lvl.includes('TAMKEEN') || lvl.includes('تمكين')) {
-                              return 'bg-sky-50 text-sky-700 border-sky-100';
+                              return 'bg-orange-50 text-orange-700 border-orange-200';
                             } else if (lvl.includes('ADVANC') || lvl.includes('متقدم')) {
                               return 'bg-emerald-50 text-emerald-700 border-emerald-150';
                             }
@@ -1450,7 +1485,7 @@ export default function ControlPanel({
                   >
                     {/* Summary card item */}
                     <div 
-                      className="p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 cursor-pointer select-none"
+                      className="p-5 flex justify-between items-center gap-4 cursor-pointer select-none"
                       onClick={() => {
                         if (isExpanded) {
                           setEditingId(null);
@@ -1465,6 +1500,15 @@ export default function ControlPanel({
                           <h4 className="text-sm sm:text-base font-extrabold text-brand-dark">
                             {getPreciseFullName(teach)}
                           </h4>
+                          
+                          {/* Designation Badge */}
+                          <span className={`inline-block text-[10px] px-2.5 py-0.5 rounded-md border font-black tracking-wide whitespace-nowrap shadow-3xs ${
+                            teach.level === 'طالبة اقراء' 
+                              ? 'bg-sky-50 text-sky-700 border-sky-100' 
+                              : 'bg-purple-50 text-purple-700 border-purple-100'
+                          }`}>
+                            {teach.level === 'طالبة اقراء' ? (lang === 'ar' ? 'طالبة اقراء' : 'Iqraa Student') : (lang === 'ar' ? 'مجازة' : 'Certified / Mujazah')}
+                          </span>
                           
                           {teach.approved ? (
                             <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-md border border-emerald-100 font-black flex items-center gap-1">
@@ -1493,7 +1537,7 @@ export default function ControlPanel({
                       </div>
 
                       {/* Display elements with arrow at the very end */}
-                      <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 w-full sm:w-auto">
+                      <div className="flex items-center gap-3 shrink-0">
                         <div className="flex items-center gap-3">
                           {teach.role === 'ADMIN' && (
                             <span className="text-[10px] bg-amber-500 text-white px-2.5 py-1 rounded-lg border border-amber-600 font-black block">
@@ -1501,8 +1545,8 @@ export default function ControlPanel({
                             </span>
                           )}
 
-                          <div className="text-end">
-                            <small className="text-slate-400 block text-[9px] font-black uppercase tracking-wider mb-0.5 text-start sm:text-end">
+                          <div className="hidden sm:block text-end">
+                            <small className="text-slate-400 block text-[9px] font-black uppercase tracking-wider mb-0.5 text-end">
                               {lang === 'ar' ? 'الصفة / الترخيص' : 'Role / Designation'}
                             </small>
                             <span className={`inline-block text-[11px] px-3 py-1 rounded-xl border font-black tracking-wide whitespace-nowrap shadow-3xs ${
@@ -1515,7 +1559,7 @@ export default function ControlPanel({
                           </div>
                         </div>
                         
-                        <button className="p-2 sm:p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-brand-primary transition-all duration-200 border border-slate-100 shadow-3xs hover:scale-105 ml-auto sm:ml-0">
+                        <button className="p-2 sm:p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-brand-primary transition-all duration-200 border border-slate-100 shadow-3xs hover:scale-105">
                           {isExpanded ? <ChevronUp className="w-5 h-5 text-brand-primary" /> : <ChevronDown className="w-5 h-5" />}
                         </button>
                       </div>
